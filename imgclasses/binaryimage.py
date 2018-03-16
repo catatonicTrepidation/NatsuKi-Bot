@@ -16,19 +16,24 @@ class BinaryImage:
 
     def __init__(self, message):
         self.message = message
-        self.sizes = [10, 20, 50, 100, 200] # why not just make continuous?
+        #self.sizes = [10, 20, 50, 100, 200] # why not just make continuous?
+        self.MAXIMGSIZE = 300
+        self.ENCODING_TYPES = {8 : '00', 16 : '01', 32 : '10', 9001 : '11'} # ASCII, UTF-8, UTF-32(?), undecided
+        self.ENCODING_LENGTHS = {'00' : 8, '01' : 16, '10' : 32, '11' : 9001}
         print('initializing')
 
     async def create_image(self, author=False, recipient=False): # if user allows only himself to decrypt image, send specific message
         print("\nENCODING...")
-        b_msg = self.str_bin(self.message)
 
-        full_length = 16 + 64 + 64 + len(b_msg) # text lth indicator + author indicator + recipient indicator + text lth
+        encoding = self.get_encoding(self.message)
+        b_enc = self.ENCODING_TYPES[encoding]
+        b_msg = self.str_bin(self.message, encoding)
 
-        # sidelength_lowerbound = math.ceil(math.sqrt(full_length))
+        full_length = 2 + 16 + 64 + 64 + len(b_msg) # encoding indicator + text lth indicator
+                                                    # + author indicator + recipient indicator + text lth
 
         img_side_length = None
-        for sz in self.sizes:
+        for sz in range(self.MAXIMGSIZE):
             if sz ** 2 >= full_length:  # minimum size that fits
                 img_side_length = sz
                 break
@@ -63,8 +68,9 @@ class BinaryImage:
             b_recip = "0110111001100001011101000111001101110101011010110110100101111110"  # natsuki~
 
 
-        bin_seq = b_lth + b_auth + b_recip + b_msg
+        bin_seq = b_enc + b_lth + b_auth + b_recip + b_msg
 
+        print('b_enc =',b_enc)
         print('b_lth =',b_lth)
         print('b_auth =',b_auth)
         print('b_recipt =',b_recip)
@@ -128,6 +134,14 @@ class BinaryImage:
 
         b_vals = {0 : '1', 255 : '0'}
 
+        b_enc = ''
+        for i in range(2): # read binary encoding (ASCII, UTF-8, ... )
+            b_enc += b_vals[pixels[col, row][0]] #MAKE THIS A DICT OF TUPLES!!!!
+            ctr += 1
+            row = ctr // side_lth
+            col = ctr % side_lth
+
+
         b_lth = ""
         for i in range(16):  # read length of text
             b_lth += b_vals[pixels[col, row][0]]
@@ -174,7 +188,9 @@ class BinaryImage:
 
         MEGABINSTRING += b_lth + b_auth + b_recip
 
-        text_length = full_length - 64 - 64 - 16  # minus auth, recip, lth indicators
+        text_length = full_length - 64 - 64 - 16 - 2  # minus auth, recip, text lth, encoding indicators
+
+        char_lth = self.ENCODING_LENGTHS[b_enc]
         byte = ""
         decoded_text = ""
         for i in range(1, text_length+1):  # read text
@@ -183,7 +199,7 @@ class BinaryImage:
             ctr += 1
             row = ctr // side_lth
             col = ctr % side_lth
-            if i % 8 == 0:
+            if i % char_lth == 0:
                 #print('byte =',byte,' ||| ','decoded_text =',decoded_text)
                 #print('int(byte, 2) =',int(byte, 2))
                 decoded_text += chr(int(byte, 2))
@@ -194,13 +210,18 @@ class BinaryImage:
 
         return False, False, decoded_text
 
-    def str_bin(self, s_str):
+    def str_bin(self, s_str, encoding):
         binary = []
-        for s in s_str:
-            if s == ' ':
-                binary.append('00100000')
-            else:
-                binary.append(bin(ord(s)))
+        for c in s_str:
+            b_chr = bin(ord(c))
+            b_chr = b_chr.replace('b', '')  # get rid of binary indicator
+            b_chr = b_chr.zfill(encoding)
+            binary.append(b_chr)
         b_str = ''.join(str(s) for s in binary)  # array to string
-        b_str = b_str.replace('b', '')  # get rid of binary indicator
         return b_str
+
+    def get_encoding(self, s):
+        for c in s:
+            if ord(c) >= 128:
+                return 16
+        return 8
