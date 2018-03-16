@@ -7,41 +7,19 @@ import sqlite_broker
 import sql_setup
 import re
 
+
 from imgclasses.binaryimage import *
+import data_holder
 
 
 
 pfx = "~"
 
 
-def formatCmdDesc(cmd, params, desc):
-    return '{message:{fill}{align}}'.format(
-            message="`" + pfx + cmd + "` " + params, fill=' ',align='<90') + " :: " + desc
+# "Well, not everyone can be a pro like me..."
 
 
-
-COMMANDS_DICT = {pfx + "count":formatCmdDesc("count","<text> [channel] [user] [.like]","Get number of messages in database"),
-            pfx + "commands":formatCmdDesc("commands","","Get list of commands🖊"),
-            pfx + "qr":formatCmdDesc("qr","[text]","Turn text into QR code")}
-
-COMMANDS_DICT = {
-                pfx + "count"    : "`" + pfx + "count` <text> [channel] [user] [.like] :: Get number of messages in database",
-                pfx + "commands" : "`" + pfx + "commands`                                                   :: Get list of commands🖊",
-                pfx + "qr"       : "`" + pfx + "qr` [text]                                                     :: Turn text into QR code"
-                }
-
-
-CMD_LEGEND = "*Legend: <> specifies required arguments, [] specifies optional arguments*"
-
-COMMANDS_STR = ""
-for cmd, desc in COMMANDS_DICT.items():
-    COMMANDS_STR += desc + "\n"
-
-               # "```\n" + ... + "```
-COMMANDS_STR = CMD_LEGEND + "\n\n" + COMMANDS_STR
-
-
-
+COMMANDS_STR = data_holder.getCommandsString()
 
 
 class CommandPen:
@@ -49,15 +27,20 @@ class CommandPen:
     def __init__(self, ntsk):
         self.ntsk = ntsk
         self.f_dict = dict()
-        self.f_dict[pfx + 'count'] = self.db_count
+
+        self.f_dict[pfx + 'info'] = self.display_info
         self.f_dict[pfx + 'commands'] = self.commands
+
+        self.f_dict[pfx + 'count'] = self.db_count
         self.f_dict[pfx + 'qr'] = self.create_qr
-        self.f_dict[pfx + 'bin'] = self.create_bin
+        self.f_dict[pfx + 'bin'] = self.encode_bin
+        self.f_dict[pfx + 'unbin'] = self.decode_bin
 
         self.f_dict[pfx + '😂'] = self.ok_hand
 
         self.f_dict[pfx + '!db'] = self.do_nothing
         self.f_dict[pfx + '!inspire'] = self.do_nothing
+        self.f_dict[pfx + '!info'] = self.do_nothing
 
         #self.usrMentionPattern = re.pattern('<@!?')
 
@@ -143,12 +126,47 @@ class CommandPen:
             num_msgs = cur.fetchall()[0][0]
             await self.ntsk.send_message(msg.channel, str(num_msgs) + " messages matched your query!")
 
-    async def create_bin(self, msg, *args):
+    async def encode_bin(self, msg, *args):
         print('msg =',msg)
         print('args =',args)
-        binImg = BinaryImage(msg.content)
-        await binImg.create_image()
-        await self.ntsk.send_file(msg.channel, 'output/binimage.png', filename='binimage.png')
+        if len(*args) == 1:
+            await self.ntsk.send_message(msg.channel, "`【！️】You need to include some text, silly【！️】`")
+            return False
+        text = ' '.join(args[0][1:])
+        binImg = BinaryImage(text)
+        success = await binImg.create_image()
+        if success:
+            await self.ntsk.send_file(msg.channel, 'output/images/binimage.png', filename='binimage.png')
+        else:
+            await self.ntsk.send_message(msg.channel, "`【？️】Something went wrong...\nPlease use UTF-8 characters only【？️】`")
+        #return False or True?
+
+    async def decode_bin(self, msg, *args): # txtfile=False
+        binImg = BinaryImage(None)
+        decoded_text = None
+        if len(msg.attachments) != 0:
+            error, restricted, decoded_text = await binImg.decode_image(msg)
+        else:
+            msg_to_decode = None
+            for i in range(min(10, len(self.ntsk.messages))):
+                print(self.ntsk.messages[i].attachments)
+                if len(self.ntsk.messages[i].attachments) != 0:
+                    msg_to_decode = self.ntsk.messages[i]
+
+            if not msg_to_decode:
+                print("Couldn't find any images to decode!")
+                return False
+
+            error, restricted, decoded_text = await binImg.decode_image(msg_to_decode)
+
+        if error:
+            await self.ntsk.send_message(msg.channel, "Oops! There was an error... :(")
+        elif restricted:
+            await self.ntsk.send_message(msg.channel, "H-Hey!! This is private! >_<")
+        else:
+            await self.ntsk.send_message(msg.channel, decoded_text)
+        return not restricted
+
 
     async def create_qr(self, msg, *args):
         await self.ntsk.send_file(msg.channel, "images/warning/NotImplemented.png", filename="NotImplemented.png")
@@ -156,6 +174,13 @@ class CommandPen:
 
     async def commands(self, msg, *args):
         await self.ntsk.send_message(msg.channel, COMMANDS_STR)
+
+    async def display_info(self, msg, *args):
+        if random.randrange(10) == 0:
+            # config_data['weight'] etc exceot don't make it config_data
+            print('say something awkward, delay, then post info')
+
+        await self.ntsk.send_message(msg.channel, embed=data_holder.getGithubEmbed())
 
     async def ok_hand(self, msg, *args):
         await self.ntsk.send_message(msg.channel, '👌')

@@ -8,6 +8,9 @@ import math
 import random
 from PIL import Image
 
+import download
+
+
 
 class BinaryImage:
 
@@ -16,12 +19,11 @@ class BinaryImage:
         self.sizes = [10, 20, 50, 100, 200]
         print('initializing')
 
-    async def create_image(self, author=False):
-        print('starting create_image...')
-
+    async def create_image(self, author=False, recipient=False): # if user allows only himself to decrypt image, send specific message
+        print("\nENCODING...")
         b_msg = self.str_bin(self.message)
 
-        full_length = len(b_msg) + 8 + 64  # text lth + text lth indicator + author indicator
+        full_length = 8 + 64 + 64  + len(b_msg)# text lth indicator + author indicator + recipient indicator + text lth
 
         # sidelength_lowerbound = math.ceil(math.sqrt(full_length))
 
@@ -50,10 +52,27 @@ class BinaryImage:
             #     b_auth += str(random.randrange(2))
             b_auth = "0110000101101110011011110110111000101101011100110110000101101110"  # anon-san
 
-        bin_seq = b_lth + b_auth + b_msg
+        b_recip = ''
+        if recipient:
+            b_recip = int(b_recip)
+            b_recip = "{0:b}".format(b_recip)
+            b_recip = b_recip.zfill(64)
+        else:
+            # for i in range(64):
+            #     b_auth += str(random.randrange(2))
+            b_recip = "0110111001100001011101000111001101110101011010110110100101111110"  # natsuki~
+
+
+        bin_seq = b_lth + b_auth + b_recip + b_msg
+
+        print('b_lth =',b_lth)
+        print('b_auth =',b_auth)
+        print('b_recipt =',b_recip)
+        print('b_msg =',b_msg)
+
 
         # image code here
-        oncolor = (255, 0, 0)
+        oncolor = (0, 0, 0)
         offcolor = (255, 255, 255)
         clrs = [offcolor, oncolor]
         side_lth = img_side_length
@@ -63,7 +82,7 @@ class BinaryImage:
         row = col = 0
 
         ctr = 0
-        for i in range(full_length):
+        for i in range(full_length):  # encode author, recipient, text
             bit = int(bin_seq[i])
             pixels[col, row] = clrs[bit]
             row = ctr // side_lth
@@ -72,16 +91,94 @@ class BinaryImage:
 
         bits_remaining = side_lth ** 2 - full_length
 
-        for i in range(bits_remaining + 1):
+        for i in range(bits_remaining + 1):  # encode random binary vals
             bit = random.randrange(2)
             pixels[col, row] = clrs[bit]
             row = ctr // side_lth
             col = ctr % side_lth
             ctr += 1
-            # print(pixels[col, row],bit)
-        print('YES')
-        img.save('output/binimage.png')
+
+        img.save('output/images/binimage.png')
         return True
+
+    async def decode_image(self, msg):
+        print("\nDECODING...")
+        author_id = msg.author.id
+        download.download_image(msg.attachments[0]['url'], "downloaded/images/imgtodecode.png")
+        img = Image.open("downloaded/images/imgtodecode.png")
+        # catch error, return False? "Cooldown -- too many requests"?
+
+        # reading pixels
+        pixels = img.load()
+        side_lth = img.width
+        row = col = 0
+        ctr = 0
+
+        MEGABINSTRING = ""
+
+        b_vals = {0 : '1', 255 : '0'}
+
+        b_lth = ""
+        for i in range(8):  # read length of text
+            b_lth += b_vals[pixels[col, row][0]]
+            row = ctr // side_lth
+            col = ctr % side_lth
+            ctr += 1
+
+        full_length = int(b_lth, 2)
+
+        b_auth = ""
+        for i in range(64):  # read author
+            b_auth += b_vals[pixels[col, row][0]]
+            row = ctr // side_lth
+            col = ctr % side_lth
+            ctr += 1
+
+        img_author = ''
+        if b_auth == "0110000101101110011011110110111000101101011100110110000101101110":
+            img_author = "anon-san"
+        else:
+            img_author = str(int(b_auth, 2))
+
+        b_recip = ""
+        for i in range(64):  # read recipient
+            b_recip += b_vals[pixels[col, row][0]]
+            row = ctr // side_lth
+            col = ctr % side_lth
+            ctr += 1
+
+        img_recipient = ''
+        if b_recip == "0110111001100001011101000111001101110101011010110110100101111110":
+            img_recipient = "natsuki~"
+        else:
+            img_recipient = str(int(b_recip, 2))
+
+        print('ctr =', ctr)
+        print('side_lth =',side_lth)
+        print('b_lth =',b_lth,' | ','full_length =', full_length)
+        print('b_auth =',b_auth,' | ','img_author =',img_author)
+        print('b_recipt =',b_recip,' | ','img_recipient =',img_recipient)
+
+        MEGABINSTRING += b_lth + b_auth + b_recip
+
+        text_length = full_length - 64 - 64 - 8  # minus auth, recip, lth indicators
+        byte = ""
+        decoded_text = ""
+        for i in range(1, text_length+1):  # read text
+            MEGABINSTRING += b_vals[pixels[col, row][0]]
+            byte += b_vals[pixels[col, row][0]]
+            row = ctr // side_lth
+            col = ctr % side_lth
+            ctr += 1
+            if i % 8 == 0:
+                #print('byte =',byte,' ||| ','decoded_text =',decoded_text)
+                #print('int(byte, 2) =',int(byte, 2))
+                decoded_text += chr(int(byte, 2))
+                byte = ""
+
+        print('b_msg =',decoded_text)
+
+        return False, False, decoded_text
 
     def str_bin(self, s_str):
         binary = []

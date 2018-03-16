@@ -25,13 +25,12 @@ class Natsuki(discord.Client):
         if message.author.bot:
             return
         print('Message from {0.author}: {0.content} {0.id}'.format(message))
-        #print('i repeat:',message.id)
-        if message.channel.name == "word-heist":
+
+        if message.channel.name == "word-heist":  # change to channel ID
             if not sqlite_broker.add_unique_words(message):
                 await ntsk.delete_message(message)
                 if random.randrange(100) == 1:
                     await ntsk.send_message(message.channel, "You've already used that word, you dope! >_<")
-
 
         content_list = message.content.split(' ')
         if not message.content:
