@@ -25,15 +25,28 @@ GITHUB_EMBED.set_footer(text=GITHUB, icon_url="https://i.imgur.com/0RkZBe1.png")
 
 
 
+# COMMANDS_DICT = {
+#                 pfx + "commands" : "`" + pfx + "commands`                                                                   :: Get list of commands🖊",
+#                 pfx + "info"     : "`" + pfx + "info`                                                                            :: Learn about me~!",
+#                 pfx + "bin"      : "`" + pfx + "bin <text>`                                                               :: Convert text to binary image",
+#                 pfx + "unbin"    : "`" + pfx + "unbin <image|URL>`                                               :: Decode binary image",
+#                 pfx + "count"    : "`" + pfx + "count <text> [channel] [user] [.like]` :: Query number of messages in database",
+#                 pfx + "qr"       : "`" + pfx + "qr [text]`                                                                 :: Turn text into QR code"
+#                 }
+
 COMMANDS_DICT = {
-                pfx + "commands" : "`" + pfx + "commands`                                                   :: Get list of commands🖊",
-                pfx + "info"     : "`" + pfx + "info`                                                            :: Learn about me~!",
-                pfx + "count"    : "`" + pfx + "count` <text> [channel] [user] [.like] :: Query number of messages in database",
-                pfx + "qr"       : "`" + pfx + "qr` [text]                                                     :: Turn text into QR code"
+                pfx + "commands" : pfx + "commands                              :: Get list of commands🖊\n",
+                pfx + "info"     : pfx + "info                                  :: Learn about me~!\n",
+                pfx + "bin"      : pfx + "bin <text>                            :: Convert text to\n"
+                                               "                                             binary image\n",
+                pfx + "unbin"    : pfx + "unbin <image|URL>                     :: Decode binary image\n",
+                pfx + "count"    : pfx + "count <text> [channel] [user] [.like] :: Query number of\n"
+                                               "                                         messages in database\n",
+                pfx + "qr"       : pfx + "qr [text]                             :: Turn text into QR code"
                 }
 
 
-CMD_LEGEND = "*Legend: <> specifies required arguments, [] specifies optional arguments*"
+CMD_LEGEND = "Legend: <> specifies required params, [] specifies optional params"
 
 
 # COMMANDS_DICT = {pfx + "count":formatCmdDesc("count","<text> [channel] [user] [.like]","Query number of messages in database"),

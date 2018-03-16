@@ -20,6 +20,7 @@ pfx = "~"
 
 
 COMMANDS_STR = data_holder.getCommandsString()
+COMMANDS_STR = "```hs\n" + COMMANDS_STR + "\n```"
 
 
 class CommandPen:
@@ -126,15 +127,53 @@ class CommandPen:
             num_msgs = cur.fetchall()[0][0]
             await self.ntsk.send_message(msg.channel, str(num_msgs) + " messages matched your query!")
 
-    async def encode_bin(self, msg, *args): # txtfile=False
+    async def encode_bin(self, msg, *args): # txtfile=False, author = False, Recipient = False
+        """
+        Encodes text as binary image
+        :param msg: Message object whose text should be encoded
+        :param args: <text file>, <author>, <specified recipient>, <remaining text>
+        :return:
+        """
         print('msg =',msg)
         print('args =',args)
         if len(*args) == 1:
             await self.ntsk.send_message(msg.channel, "`【！️】You need to include some text, silly【！️】`")
             return False
-        text = ' '.join(args[0][1:])
+
+        start = 1
+        img_author = None
+        img_recipient = None
+
+        print('args[0][1] =',args[0][1])
+
+        bool_strings = ['true','false']
+
+
+        if args[0][1].lower() in bool_strings:
+            img_author = msg.author.id
+            start = 2
+
+        if start == 1 or len(args[0]) > 2:
+            try:
+                print(args[0][start])
+                usr = await self.ntsk.get_user_info(args[0][start])
+                img_recipient = usr.id
+                start += 1
+            except:
+                translator = str.maketrans('', '', '<@!>')
+                x = args[0][start].translate(translator)
+                if x in msg.raw_mentions:
+                    img_recipient = x
+                    start += 1
+
+        if len(args[0]) <= start:
+            await self.ntsk.send_message(msg.channel, "`【！️】You need to include some text, silly【！️】`")
+            return False
+
+
+        text = ' '.join(args[0][start:])
         binImg = BinaryImage(text)
-        success = await binImg.create_image()
+        success = await binImg.create_image(img_author, img_recipient)
         if success:
             await self.ntsk.send_file(msg.channel, 'output/images/binimage.png', filename='binimage.png')
         else:

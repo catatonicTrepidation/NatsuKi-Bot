@@ -33,7 +33,6 @@ class Natsuki(discord.Client):
                     await ntsk.send_message(message.channel, "You've already used that word, you dope! >_<")
 
         content_list = message.content.split(' ')
-
         if not message.content:
             return
         if message.content[0] == pfx:

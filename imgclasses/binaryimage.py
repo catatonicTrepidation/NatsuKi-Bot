@@ -46,9 +46,7 @@ class BinaryImage:
 
         b_auth = ''
         if author:
-            translator = str.maketrans('', '', '<@!>')
-            b_auth = self.message.author.id
-            b_auth = b_auth.translate(translator)
+            b_auth = author
             b_auth = int(b_auth)
             b_auth = "{0:b}".format(b_auth)
             b_auth = b_auth.zfill(64)
@@ -59,7 +57,7 @@ class BinaryImage:
 
         b_recip = ''
         if recipient:
-            b_recip = int(b_recip)
+            b_recip = int(recipient)
             b_recip = "{0:b}".format(b_recip)
             b_recip = b_recip.zfill(64)
         else:
@@ -113,11 +111,8 @@ class BinaryImage:
         print("\nDECODING...")
 
 
-        """v DO THIS IN COMMAND_PEN CLASS v"""
-
         img = Image.open(filename)
 
-        """^ DO THIS IN COMMAND_PEN CLASS ^"""
 
         author_id = msg.author.id
 
@@ -178,6 +173,10 @@ class BinaryImage:
             img_recipient = "natsuki~"
         else:
             img_recipient = str(int(b_recip, 2))
+            print('img_recipient =', img_recipient)
+            if msg.author.id != img_recipient:
+                return False, True, "hehe, nice try~"
+
 
         # print('ctr =', ctr)
         # print('side_lth =',side_lth)
