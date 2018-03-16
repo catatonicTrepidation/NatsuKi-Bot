@@ -126,7 +126,7 @@ class CommandPen:
             num_msgs = cur.fetchall()[0][0]
             await self.ntsk.send_message(msg.channel, str(num_msgs) + " messages matched your query!")
 
-    async def encode_bin(self, msg, *args):
+    async def encode_bin(self, msg, *args): # txtfile=False
         print('msg =',msg)
         print('args =',args)
         if len(*args) == 1:
@@ -144,23 +144,47 @@ class CommandPen:
     async def decode_bin(self, msg, *args): # txtfile=False
         binImg = BinaryImage(None)
         decoded_text = None
+        embed = attch = False
+        msg_to_decode = None
         if len(msg.attachments) != 0:
-            error, restricted, decoded_text = await binImg.decode_image(msg)
+            msg_to_decode = msg
+            attch = True
+        elif len(msg.embeds) != 0:
+            print("msg.embeds[0]['url'][-3:] =",msg.embeds[0]['url'][-3:])
+            if msg.embeds[0]['url'][-3:] in ['png', 'jpg']:
+                msg_to_decode = msg
+                embed = True
         else:
-            msg_to_decode = None
-            for i in range(min(10, len(self.ntsk.messages))):
-                print(self.ntsk.messages[i].attachments)
-                if len(self.ntsk.messages[i].attachments) != 0:
-                    msg_to_decode = self.ntsk.messages[i]
+            N = len(self.ntsk.messages)
+            for i in range(min(10, N)):
+                print(self.ntsk.messages[N-i-1].attachments)
+                if len(self.ntsk.messages[N-i-1].attachments) != 0:
+                    msg_to_decode = self.ntsk.messages[N-i-1]
+                    attch = True
+                    break
+                if len(self.ntsk.messages[N-i-1].embeds) != 0:
+                    print("self.ntsk.messages[N-i-1].embeds[0]['url'][-3:] =", self.ntsk.messages[N-i-1].embeds[0]['url'][-3:])
+                    if self.ntsk.messages[N-i-1].embeds[0]['url'][-3:] in ['png','jpg']:
+                        print('trueee',self.ntsk.messages[N-i-1].content)
+                        msg_to_decode = self.ntsk.messages[N-i-1]
+                        embed = True
+                        break
 
             if not msg_to_decode:
                 print("Couldn't find any images to decode!")
                 return False
 
-            error, restricted, decoded_text = await binImg.decode_image(msg_to_decode)
+            # GET IMG URL HERE
+            if attch:
+                download.download_image(msg_to_decode.attachments[0]['url'], "downloaded/images/imgtodecode.png")
+            elif embed:
+                download.download_image(msg_to_decode.embeds[0]['url'], "downloaded/images/imgtodecode.png")
+            # catch error ()
+
+        error, restricted, decoded_text = await binImg.decode_image("downloaded/images/imgtodecode.png", msg) # decode image
 
         if error:
-            await self.ntsk.send_message(msg.channel, "Oops! There was an error... :(")
+            await self.ntsk.send_message(msg.channel, "Oops! There was an error... TT_TT")
         elif restricted:
             await self.ntsk.send_message(msg.channel, "H-Hey!! This is private! >_<")
         else:

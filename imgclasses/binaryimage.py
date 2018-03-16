@@ -18,8 +18,8 @@ class BinaryImage:
         self.message = message
         #self.sizes = [10, 20, 50, 100, 200] # why not just make continuous?
         self.MAXIMGSIZE = 300
-        self.ENCODING_TYPES = {8 : '00', 16 : '01', 32 : '10', 9001 : '11'} # ASCII, UTF-8, UTF-32(?), undecided
-        self.ENCODING_LENGTHS = {'00' : 8, '01' : 16, '10' : 32, '11' : 9001}
+        self.ENCODING_TYPES = {8 : '00', 16 : '01', 24 : '10', 32 : '11'} # ASCII, UTF-8, UTF-32(?), undecided
+        self.ENCODING_LENGTHS = {'00' : 8, '01' : 16, '10' : 24, '11' : 32}
         print('initializing')
 
     async def create_image(self, author=False, recipient=False): # if user allows only himself to decrypt image, send specific message
@@ -70,13 +70,13 @@ class BinaryImage:
 
         bin_seq = b_enc + b_lth + b_auth + b_recip + b_msg
 
-        print('b_enc =',b_enc)
-        print('b_lth =',b_lth)
-        print('b_auth =',b_auth)
-        print('b_recipt =',b_recip)
-        print('b_msg =',b_msg)
-
-        print('bin_seq =',bin_seq)
+        # print('b_enc =',b_enc)
+        # print('b_lth =',b_lth)
+        # print('b_auth =',b_auth)
+        # print('b_recipt =',b_recip)
+        # print('b_msg =',b_msg)
+        #
+        # print('bin_seq =',bin_seq)
 
 
         # image code here
@@ -109,14 +109,13 @@ class BinaryImage:
         img.save('output/images/binimage.png')
         return True
 
-    async def decode_image(self, msg): # Consider adding filename param?
+    async def decode_image(self, filename, msg): # Consider adding filename param?
         print("\nDECODING...")
 
 
         """v DO THIS IN COMMAND_PEN CLASS v"""
 
-        download.download_image(msg.attachments[0]['url'], "downloaded/images/imgtodecode.png")
-        img = Image.open("downloaded/images/imgtodecode.png")
+        img = Image.open(filename)
 
         """^ DO THIS IN COMMAND_PEN CLASS ^"""
 
@@ -180,11 +179,11 @@ class BinaryImage:
         else:
             img_recipient = str(int(b_recip, 2))
 
-        print('ctr =', ctr)
-        print('side_lth =',side_lth)
-        print('b_lth =',b_lth,' | ','full_length =', full_length)
-        print('b_auth =',b_auth,' | ','img_author =',img_author)
-        print('b_recipt =',b_recip,' | ','img_recipient =',img_recipient)
+        # print('ctr =', ctr)
+        # print('side_lth =',side_lth)
+        # print('b_lth =',b_lth,' | ','full_length =', full_length)
+        # print('b_auth =',b_auth,' | ','img_author =',img_author)
+        # print('b_recipt =',b_recip,' | ','img_recipient =',img_recipient)
 
         MEGABINSTRING += b_lth + b_auth + b_recip
 
@@ -205,8 +204,8 @@ class BinaryImage:
                 decoded_text += chr(int(byte, 2))
                 byte = ""
 
-        print('MEGABIGSTRING =',MEGABINSTRING)
-        print('b_msg =',decoded_text)
+        # print('MEGABIGSTRING =',MEGABINSTRING)
+        # print('b_msg =',decoded_text)
 
         return False, False, decoded_text
 
@@ -222,6 +221,10 @@ class BinaryImage:
 
     def get_encoding(self, s):
         for c in s:
-            if ord(c) >= 128:
+            if 32768 > ord(c) >= 128:
                 return 16
+            elif 8388608 > ord(c) >= 32768:
+                return 24
+            elif ord(c) > 8388608:
+                return 32
         return 8
