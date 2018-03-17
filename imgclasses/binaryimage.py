@@ -28,6 +28,7 @@ class BinaryImage:
         encoding = self.get_encoding(self.message)
         b_enc = self.ENCODING_TYPES[encoding]
         b_msg = self.str_bin(self.message, encoding)
+        print('ENCODING =',b_enc)
 
         full_length = 2 + 16 + 64 + 64 + len(b_msg) # encoding indicator + text lth indicator
                                                     # + author indicator + recipient indicator + text lth
@@ -124,87 +125,75 @@ class BinaryImage:
         row = col = 0
         ctr = 0
 
-        MEGABINSTRING = ""
-
-        b_vals = {0 : '1', 255 : '0'}
-
-        b_enc = ''
-        for i in range(2): # read binary encoding (ASCII, UTF-8, ... )
-            b_enc += b_vals[pixels[col, row][0]] #MAKE THIS A DICT OF TUPLES!!!!
-            ctr += 1
-            row = ctr // side_lth
-            col = ctr % side_lth
-
-
-        b_lth = ""
-        for i in range(16):  # read length of text
-            b_lth += b_vals[pixels[col, row][0]]
-            ctr += 1
-            row = ctr // side_lth
-            col = ctr % side_lth
-
-
-        full_length = int(b_lth, 2)
-
-        b_auth = ""
-        for i in range(64):  # read author
-            b_auth += b_vals[pixels[col, row][0]]
-            ctr += 1
-            row = ctr // side_lth
-            col = ctr % side_lth
-
-
-        img_author = ''
-        if b_auth == "0110000101101110011011110110111000101101011100110110000101101110":
-            img_author = "anon-san"
-        else:
-            img_author = str(int(b_auth, 2))
-
-        b_recip = ""
-        for i in range(64):  # read recipient
-            b_recip += b_vals[pixels[col, row][0]]
-            ctr += 1
-            row = ctr // side_lth
-            col = ctr % side_lth
-
-
-        img_recipient = ''
-        if b_recip == "0110111001100001011101000111001101110101011010110110100101111110":
-            img_recipient = "natsuki~"
-        else:
-            img_recipient = str(int(b_recip, 2))
-            print('img_recipient =', img_recipient)
-            if msg.author.id != img_recipient:
-                return False, True, "hehe, nice try~"
-
-
-        # print('ctr =', ctr)
-        # print('side_lth =',side_lth)
-        # print('b_lth =',b_lth,' | ','full_length =', full_length)
-        # print('b_auth =',b_auth,' | ','img_author =',img_author)
-        # print('b_recipt =',b_recip,' | ','img_recipient =',img_recipient)
-
-        MEGABINSTRING += b_lth + b_auth + b_recip
-
-        text_length = full_length - 64 - 64 - 16 - 2  # minus auth, recip, text lth, encoding indicators
-
-        char_lth = self.ENCODING_LENGTHS[b_enc]
-        byte = ""
         decoded_text = ""
-        for i in range(1, text_length+1):  # read text
-            MEGABINSTRING += b_vals[pixels[col, row][0]]
-            byte += b_vals[pixels[col, row][0]]
-            ctr += 1
-            row = ctr // side_lth
-            col = ctr % side_lth
-            if i % char_lth == 0:
-                #print('byte =',byte,' ||| ','decoded_text =',decoded_text)
-                #print('int(byte, 2) =',int(byte, 2))
-                decoded_text += chr(int(byte, 2))
-                byte = ""
 
-        # print('MEGABIGSTRING =',MEGABINSTRING)
-        # print('b_msg =',decoded_text)
+        b_vals = {(0, 0, 0) : '1', (255, 255, 255) : '0'}
+
+
+        try:
+            b_enc = ''
+            for i in range(2): # read binary encoding (ASCII, UTF-8, ... )
+                b_enc += b_vals[pixels[col, row]] #MAKE THIS A DICT OF TUPLES!!!!
+                ctr += 1
+                row = ctr // side_lth
+                col = ctr % side_lth
+
+
+            b_lth = ""
+            for i in range(16):  # read length of text
+                b_lth += b_vals[pixels[col, row]]
+                ctr += 1
+                row = ctr // side_lth
+                col = ctr % side_lth
+
+
+            full_length = int(b_lth, 2)
+
+            b_auth = ""
+            for i in range(64):  # read author
+                b_auth += b_vals[pixels[col, row]]
+                ctr += 1
+                row = ctr // side_lth
+                col = ctr % side_lth
+
+
+            img_author = ''
+            if b_auth == "0110000101101110011011110110111000101101011100110110000101101110":
+                img_author = "anon-san"
+            else:
+                img_author = str(int(b_auth, 2))
+
+            b_recip = ""
+            for i in range(64):  # read recipient
+                b_recip += b_vals[pixels[col, row]]
+                ctr += 1
+                row = ctr // side_lth
+                col = ctr % side_lth
+
+
+            img_recipient = ''
+            if b_recip == "0110111001100001011101000111001101110101011010110110100101111110":
+                img_recipient = "natsuki~"
+            else:
+                img_recipient = str(int(b_recip, 2))
+                print('img_recipient =', img_recipient)
+                if msg.author.id != img_recipient:
+                    return False, True, "hehe, nice try~"
+
+            text_length = full_length - 64 - 64 - 16 - 2  # minus auth, recip, text lth, encoding indicators
+
+            char_lth = self.ENCODING_LENGTHS[b_enc]
+            byte = ""
+            for i in range(1, text_length+1):  # read text
+                byte += b_vals[pixels[col, row]]
+                ctr += 1
+                row = ctr // side_lth
+                col = ctr % side_lth
+                if i % char_lth == 0:
+                    decoded_text += chr(int(byte, 2))
+                    byte = ""
+        except:
+            return True, False, "Error... :c"
 
         return False, False, decoded_text
 
@@ -219,11 +208,12 @@ class BinaryImage:
         return b_str
 
     def get_encoding(self, s):
+        max_b = 8
         for c in s:
             if 32768 > ord(c) >= 128:
-                return 16
+                max_b = 16
             elif 8388608 > ord(c) >= 32768:
-                return 24
+                max_b = 24
             elif ord(c) > 8388608:
                 return 32
-        return 8
+        return max_b

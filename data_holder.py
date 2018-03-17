@@ -37,12 +37,12 @@ GITHUB_EMBED.set_footer(text=GITHUB, icon_url="https://i.imgur.com/0RkZBe1.png")
 COMMANDS_DICT = {
                 pfx + "commands" : pfx + "commands                              :: Get list of commands🖊\n",
                 pfx + "info"     : pfx + "info                                  :: Learn about me~!\n",
-                pfx + "bin"      : pfx + "bin <text>                            :: Convert text to\n"
+                pfx + "bin"      : pfx + "bin   <text> [bool] [ID]              :: Convert text to\n"
                                                "                                             binary image\n",
                 pfx + "unbin"    : pfx + "unbin <image|URL>                     :: Decode binary image\n",
                 pfx + "count"    : pfx + "count <text> [channel] [user] [.like] :: Query number of\n"
                                                "                                         messages in database\n",
-                pfx + "qr"       : pfx + "qr [text]                             :: Turn text into QR code"
+                pfx + "qr"       : pfx + "qr    [text]                          :: Turn text into QR code"
                 }
 
 

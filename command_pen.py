@@ -10,7 +10,7 @@ import re
 
 from imgclasses.binaryimage import *
 import data_holder
-
+import util
 
 
 pfx = "~"
@@ -33,9 +33,9 @@ class CommandPen:
         self.f_dict[pfx + 'commands'] = self.commands
 
         self.f_dict[pfx + 'count'] = self.db_count
-        self.f_dict[pfx + 'qr'] = self.create_qr
         self.f_dict[pfx + 'bin'] = self.encode_bin
         self.f_dict[pfx + 'unbin'] = self.decode_bin
+        self.f_dict[pfx + 'qr'] = self.create_qr
 
         self.f_dict[pfx + '😂'] = self.ok_hand
 
@@ -182,42 +182,18 @@ class CommandPen:
 
     async def decode_bin(self, msg, *args): # txtfile=False
         binImg = BinaryImage(None)
-        decoded_text = None
-        embed = attch = False
-        msg_to_decode = None
-        if len(msg.attachments) != 0:
-            msg_to_decode = msg
-            attch = True
-        elif len(msg.embeds) != 0:
-            print("msg.embeds[0]['url'][-3:] =",msg.embeds[0]['url'][-3:])
-            if msg.embeds[0]['url'][-3:] in ['png', 'jpg']:
-                msg_to_decode = msg
-                embed = True
-        else:
-            N = len(self.ntsk.messages)
-            for i in range(min(10, N)):
-                print(self.ntsk.messages[N-i-1].attachments)
-                if len(self.ntsk.messages[N-i-1].attachments) != 0:
-                    msg_to_decode = self.ntsk.messages[N-i-1]
-                    attch = True
-                    break
-                if len(self.ntsk.messages[N-i-1].embeds) != 0:
-                    print("self.ntsk.messages[N-i-1].embeds[0]['url'][-3:] =", self.ntsk.messages[N-i-1].embeds[0]['url'][-3:])
-                    if self.ntsk.messages[N-i-1].embeds[0]['url'][-3:] in ['png','jpg']:
-                        print('trueee',self.ntsk.messages[N-i-1].content)
-                        msg_to_decode = self.ntsk.messages[N-i-1]
-                        embed = True
-                        break
 
-            if not msg_to_decode:
-                print("Couldn't find any images to decode!")
-                return False
+        msg_to_decode, attch, embed = util.detect_image([msg] + list(self.ntsk.messages))
 
-            # GET IMG URL HERE
-            if attch:
-                download.download_image(msg_to_decode.attachments[0]['url'], "downloaded/images/imgtodecode.png")
-            elif embed:
-                download.download_image(msg_to_decode.embeds[0]['url'], "downloaded/images/imgtodecode.png")
+        if not msg_to_decode:
+            print("Couldn't find any images to decode!")
+            return
+
+        # GET IMG URL HERE
+        if attch:
+            download.download_image(msg_to_decode.attachments[0]['url'], "downloaded/images/imgtodecode.png")
+        elif embed:
+            download.download_image(msg_to_decode.embeds[0]['url'], "downloaded/images/imgtodecode.png")
             # catch error ()
 
         error, restricted, decoded_text = await binImg.decode_image("downloaded/images/imgtodecode.png", msg) # decode image
@@ -238,9 +214,13 @@ class CommandPen:
     async def commands(self, msg, *args):
         await self.ntsk.send_message(msg.channel, COMMANDS_STR)
 
+
+    # make !help <command> function
+    # document functions
+
     async def display_info(self, msg, *args):
         if random.randrange(10) == 0:
-            # config_data['weight'] etc exceot don't make it config_data
+            # config_data['weight'] etc except don't make it config_data
             print('say something awkward, delay, then post info')
 
         await self.ntsk.send_message(msg.channel, embed=data_holder.getGithubEmbed())

@@ -11,7 +11,6 @@ def add_message(db_name, msg):
     con = sql_setup.get_con(db_name)
     with con:
         cur = con.cursor()
-        #cur.execute("CREATE TABLE Messages(Id TEXT, Author TEXT, Channel TEXT, Time TEXT, Content TEXT)")
         cur.execute("INSERT INTO " + db_name + " VALUES(?, ?, ?, ?, ?, ?)",
                     (msg.id, msg.author.id, msg.author.nick, msg.channel.name, str(msg.timestamp), msg.content))
 
