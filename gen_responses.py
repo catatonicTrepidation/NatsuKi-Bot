@@ -2,11 +2,6 @@
 # coding=utf-8
 
 import discord
-import json
-import sqlite_broker
-import sql_setup
-import re
-
 import random
 
 pfx = "~"
@@ -46,7 +41,7 @@ class ResponseGenerator:
         :param args: remainder of message
         :return: custom response as string(?) [not yet implemented]
         """
-        await self.ntsk.send_file(msg.channel, "images/warning/NotImplemented.png", filename="NotImplemented.png")
+        await self.ntsk.send_file(msg.channel, "data/images/error/NotImplemented.png", filename="NotImplemented.png")
         print("Functionality not yet implemented")
 
 

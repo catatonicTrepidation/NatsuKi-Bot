@@ -3,7 +3,10 @@
 
 import sqlite3 as lite
 import sys
-import sql_setup
+from string import punctuation
+
+from data.sql_setup import get_con, get_meta
+
 
 
 
@@ -13,11 +16,13 @@ def add_message(db_name, msg):
     :param db_name: database to augment
     :param msg: message to add
     """
-    con = sql_setup.get_con(db_name)
+    metadata = get_meta(msg.server.id)
+    count = metadata['count'] + 1
+    con = get_con(db_name, msg.server.id)
     with con:
         cur = con.cursor()
-        cur.execute("INSERT INTO " + db_name + " VALUES(?, ?, ?, ?, ?, ?)",
-                    (msg.id, msg.author.id, msg.author.nick, msg.channel.name, str(msg.timestamp), msg.content))
+        cur.execute("INSERT INTO " + db_name + " VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+                    (msg.content, msg.id, msg.author.id, msg.author.name, msg.channel.id, str(msg.timestamp), msg.server.id, count))
 
     # catch exception? return True for success?
 
@@ -28,8 +33,11 @@ def add_unique_words(msg):
     :param msg:
     :return:
     """
-    con = sql_setup.get_con('uniquewords')
-    content = msg.content.split(' ')
+    con = get_con('uniquewords', msg.server.id)
+    content = msg.content
+    translator = str.maketrans('', '', punctuation)
+    content = content.translate(translator)
+    content = content.lower().split(' ')
 
     valid, bools = contains_unique_word(con, content)
     if not valid:
@@ -39,8 +47,8 @@ def add_unique_words(msg):
         cur = con.cursor()
         for c in range(len(content)):
             if bools[c]:  # want to add
-                cur.execute("INSERT INTO " + 'UniqueWords' + " VALUES(?, ?, ?, ?, ?, ?)",
-                            (msg.id, msg.author.id, msg.author.nick, msg.channel.name, str(msg.timestamp), content[c]))
+                cur.execute("INSERT INTO " + 'UniqueWords' + " VALUES(?, ?, ?, ?, ?, ?, ?)",
+                            (content[c], msg.id, msg.author.id, msg.author.name, msg.channel.id, str(msg.timestamp), msg.server.id))
 
     return True
 
@@ -53,7 +61,7 @@ def contains_unique_word(con, content):
     """
     with con:
         cur = con.cursor()
-        cur.execute("SELECT Content FROM " + 'UniqueWords')
+        cur.execute("SELECT Word FROM " + 'UniqueWords')
         rows = cur.fetchall()
 
         bools = [True]*len(content)
@@ -68,7 +76,7 @@ def contains_unique_word(con, content):
 
 # grabs all full messages, splits each by space. less efficient
 def contains_unique_word_by_channel(db_name, channel, msg):
-    con = sql_setup.get_con(db_name)
+    con = get_con(db_name, msg.server.id)
     with con:
         cur = con.cursor()
         cur.execute("SELECT Content FROM " + db_name + " WHERE Channel LIKE ? ", (channel,))

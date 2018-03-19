@@ -4,12 +4,12 @@
 import discord
 import json
 import sqlite_broker
-import sql_setup
+from data.sql_setup import get_con
 import re
 
 
 from imgclasses.binaryimage import *
-import data_holder
+import data.data_holder
 import util
 
 
@@ -19,7 +19,7 @@ pfx = "~"
 # "Well, not everyone can be a pro like me..."
 
 
-COMMANDS_STR = data_holder.getCommandsString()
+COMMANDS_STR = data.data_holder.getCommandsString()
 COMMANDS_STR = "```hs\n" + COMMANDS_STR + "\n```"
 
 
@@ -58,7 +58,7 @@ class CommandPen:
             print("Unknown command! ~commands if you can't figure it out...")
 
     async def db_count(self, msg, *args): # sort arguments? that way the @mentions will all come after db_name
-        con = sql_setup.get_con('messages')
+        con = get_con('messages', msg.server.id)
         cur = con.cursor()
         num_msgs = 0
         print('args =',*args)
@@ -144,9 +144,7 @@ class CommandPen:
         img_author = None
         img_recipient = None
 
-
         bool_strings = ['true','false']
-
 
         if args[0][1].lower() in bool_strings:
             img_author = msg.author.id
@@ -169,12 +167,12 @@ class CommandPen:
             await self.ntsk.send_message(msg.channel, "`【！️】You need to include some text, silly【！️】`")
             return False
 
-
         text = ' '.join(args[0][start:])
         binImg = BinaryImage(text)
-        success = await binImg.create_image(img_author, img_recipient)
+        success = await binImg.create_image(msg.server.id, img_author, img_recipient)
         if success:
-            await self.ntsk.send_file(msg.channel, 'output/images/binimage.png', filename='binimage.png')
+            await self.ntsk.send_file(msg.channel,
+                            'data/databases/%s/output/images/binimage.png' % (msg.server.id), filename='binimage.png')
         else:
             await self.ntsk.send_message(msg.channel, "`【？️】Something went wrong...\nPlease use UTF-8 characters only【？️】`")
         #return False or True?
@@ -188,14 +186,14 @@ class CommandPen:
             print("Couldn't find any images to decode!")
             return
 
-        # GET IMG URL HERE
+        download_path = 'data/databases/%s' % (msg.server.id,) + '/downloaded/images/imgtodecode.png'
         if attch:
-            download.download_image(msg_to_decode.attachments[0]['url'], "downloaded/images/imgtodecode.png")
+            download.download_image(msg_to_decode.attachments[0]['url'], download_path)
         elif embed:
-            download.download_image(msg_to_decode.embeds[0]['url'], "downloaded/images/imgtodecode.png")
-            # catch error ()
+            download.download_image(msg_to_decode.embeds[0]['url'], download_path)
+        # catch error ()
 
-        error, restricted, decoded_text = await binImg.decode_image("downloaded/images/imgtodecode.png", msg) # decode image
+        error, restricted, decoded_text = await binImg.decode_image(download_path, msg.author.id) # decode image
 
         if error:
             await self.ntsk.send_message(msg.channel, "Oops! There was an error... TT_TT")
@@ -207,7 +205,7 @@ class CommandPen:
 
 
     async def create_qr(self, msg, *args):
-        await self.ntsk.send_file(msg.channel, "images/warning/NotImplemented.png", filename="NotImplemented.png")
+        await self.ntsk.send_file(msg.channel, "data/images/error/NotImplemented.png", filename="NotImplemented.png")
         print("QR not yet implemented")
 
     async def commands(self, msg, *args):
@@ -222,13 +220,13 @@ class CommandPen:
             # config_data['weight'] etc except don't make it config_data
             print('say something awkward, delay, then post info')
 
-        await self.ntsk.send_message(msg.channel, embed=data_holder.getGithubEmbed())
+        await self.ntsk.send_message(msg.channel, embed=data.data_holder.getGithubEmbed())
 
     async def ok_hand(self, msg, *args):
         await self.ntsk.send_message(msg.channel, '👌')
 
     async def yuri(self, msg, *args):
-        await self.ntsk.send_file(msg.channel, 'images/react/natsuvomit.png')
+        await self.ntsk.send_file(msg.channel, 'data/images/react/natsuvomit.png')
 
     async def do_nothing(self, msg, *args):
         print('ree, Spock-san~')

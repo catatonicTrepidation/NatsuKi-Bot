@@ -22,7 +22,7 @@ class BinaryImage:
         self.ENCODING_LENGTHS = {'00' : 8, '01' : 16, '10' : 24, '11' : 32}
         print('initializing')
 
-    async def create_image(self, author=False, recipient=False): # if user allows only himself to decrypt image, send specific message
+    async def create_image(self, server_id, author=False, recipient=False): # if user allows only himself to decrypt image, send specific message
         print("\nENCODING...")
 
         encoding = self.get_encoding(self.message)
@@ -105,17 +105,15 @@ class BinaryImage:
             row = ctr // side_lth
             col = ctr % side_lth
 
-        img.save('output/images/binimage.png')
+        img.save('data/databases/%s/output/images/binimage.png' % (server_id,))
         return True
 
-    async def decode_image(self, filename, msg): # Consider adding filename param?
+    async def decode_image(self, filename, request_id): # Consider adding filename param?
         print("\nDECODING...")
 
 
         img = Image.open(filename)
 
-
-        author_id = msg.author.id
 
         # catch error, return False? "Cooldown -- too many requests"?
 
@@ -177,7 +175,7 @@ class BinaryImage:
             else:
                 img_recipient = str(int(b_recip, 2))
                 print('img_recipient =', img_recipient)
-                if msg.author.id != img_recipient:
+                if request_id != img_recipient:
                     return False, True, "hehe, nice try~"
 
             text_length = full_length - 64 - 64 - 16 - 2  # minus auth, recip, text lth, encoding indicators

@@ -4,7 +4,6 @@
 import discord
 import json
 import sqlite_broker
-import sql_setup
 import re
 
 

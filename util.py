@@ -12,10 +12,10 @@ def contains_curse_word(sentence):
     :param sentence: sentence to check
     :return: true if has curse word
     """
-    sentence = sentence.lower()
     translator = str.maketrans('', '', punctuation)
     sentence = sentence.translate(translator)
-    with open('react/bad_words.txt', errors="ignore") as f:
+    sentence = sentence.lower()
+    with open('data/react/bad_words.txt', errors="ignore") as f:
         word = f.readline()[:-1]
         while word:
             if word in sentence:
