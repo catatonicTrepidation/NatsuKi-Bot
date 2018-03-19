@@ -38,6 +38,7 @@ class CommandPen:
         self.f_dict[pfx + 'qr'] = self.create_qr
 
         self.f_dict[pfx + '😂'] = self.ok_hand
+        self.f_dict[pfx + 'yuri'] = self.yuri
 
         self.f_dict[pfx + '!db'] = self.do_nothing
         self.f_dict[pfx + '!inspire'] = self.do_nothing
@@ -134,8 +135,7 @@ class CommandPen:
         :param args: <text file>, <author>, <specified recipient>, <remaining text>
         :return:
         """
-        print('msg =',msg)
-        print('args =',args)
+
         if len(*args) == 1:
             await self.ntsk.send_message(msg.channel, "`【！️】You need to include some text, silly【！️】`")
             return False
@@ -144,7 +144,6 @@ class CommandPen:
         img_author = None
         img_recipient = None
 
-        print('args[0][1] =',args[0][1])
 
         bool_strings = ['true','false']
 
@@ -228,9 +227,9 @@ class CommandPen:
     async def ok_hand(self, msg, *args):
         await self.ntsk.send_message(msg.channel, '👌')
 
+    async def yuri(self, msg, *args):
+        await self.ntsk.send_file(msg.channel, 'images/react/natsuvomit.png')
+
     async def do_nothing(self, msg, *args):
         print('ree, Spock-san~')
 
-
-#pen = CommandPen(None)
-#pen.take_command('`count')

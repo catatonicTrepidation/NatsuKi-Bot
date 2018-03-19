@@ -211,9 +211,9 @@ class BinaryImage:
         max_b = 8
         for c in s:
             if 32768 > ord(c) >= 128:
-                max_b = 16
+                max_b = max(max_b, 16)
             elif 8388608 > ord(c) >= 32768:
-                max_b = 24
+                max_b = max(max_b, 24)
             elif ord(c) > 8388608:
                 return 32
         return max_b

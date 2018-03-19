@@ -24,7 +24,7 @@ class Natsuki(discord.Client):
     async def on_message(self, message):
         if message.author.bot:
             return
-        print('Message from {0.author}: {0.content} {0.id}'.format(message))
+        print('Message from {0.author}: {0.content}'.format(message))
 
         if message.channel.name == "word-heist":  # change to channel ID
             if not sqlite_broker.add_unique_words(message):

@@ -18,7 +18,8 @@ rand_responses = [
     "♡",
     "Want to, um, read some manga..?",
     "W-What do you want?",
-    "Well, I am a pro."
+    "Well, I am a pro.",
+    "ニャ〜！"
 
 ]
 
@@ -31,10 +32,20 @@ class ResponseGenerator:
     #self.usrMentionPattern = re.pattern('<@!?')
 
     async def get_predefined_response(self):
+        """
+        Get random, predefined response
+        :return: response as string
+        """
         r = random.randrange(len(rand_responses))
         return rand_responses[r]
 
     async def gen_custom_response(self, msg, *args):
+        """
+        Generate custom response [not yet implemented]
+        :param msg: message object that mentioned NatsuKi
+        :param args: remainder of message
+        :return: custom response as string(?) [not yet implemented]
+        """
         await self.ntsk.send_file(msg.channel, "images/warning/NotImplemented.png", filename="NotImplemented.png")
         print("Functionality not yet implemented")
 
