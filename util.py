@@ -37,19 +37,19 @@ def detect_image(messages):
     j = 0
     orig_message = messages[-1]
     while i < 100 and j < min(20, N):
-        print(messages[N - i - 1].channel.name != orig_message.channel.name)
-        if messages[N - i - 1].channel.name != orig_message.channel.name:
+        print(messages[N - i - 1].channel.id != orig_message.channel.id)
+        if messages[N - i - 1].channel.id != orig_message.channel.id:
             i += 1
             continue
-        print('thisAttch =', messages[N - i - 1].attachments)
+        print('detect_image: thisAttch =', messages[N - i - 1].attachments)
         if len(messages[N - i - 1].attachments) != 0:
             msg_to_decode = messages[N - i - 1]
             attch = True
             break
-        print('thisEmbed =', messages[N - i - 1].embeds)
+        print('detect_image: thisEmbed =', messages[N - i - 1].embeds)
         if len(messages[N - i - 1].embeds) != 0:
-            if messages[N - i - 1].embeds[0]['url'][3:] in ['png', 'jpg', 'peg']:
-                msg_to_decode = self.ntsk.messages[N - i - 1]
+            if messages[N - i - 1].embeds[0]['url'][-3:] in ['png', 'jpg', 'peg']:
+                msg_to_decode = messages[N - i - 1]
                 embed = True
                 break
         i += 1

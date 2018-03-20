@@ -11,6 +11,7 @@ import re
 from imgclasses.binaryimage import *
 import data.data_holder
 import data.data_setup
+import data.character_query
 import util
 
 
@@ -28,6 +29,7 @@ class CommandPen:
 
     def __init__(self, ntsk):
         self.ntsk = ntsk
+        self.CharQuery = data.character_query.CharacterQuery()
         self.f_dict = dict()
 
         self.f_dict[pfx + 'info'] = self.display_info
@@ -37,8 +39,8 @@ class CommandPen:
         self.f_dict[pfx + 'bin'] = self.encode_bin
         self.f_dict[pfx + 'unbin'] = self.decode_bin
         self.f_dict[pfx + 'qr'] = self.create_qr
-        #self.f_dict[pfx + 'setquote'] = self.set_quote
-        #self.f_dict[pfx + 'quote'] = self.get_quote
+        self.f_dict[pfx + 'setquote'] = self.set_quote
+        self.f_dict[pfx + 'quote'] = self.get_quote
 
         self.f_dict[pfx + '😂'] = self.ok_hand
         self.f_dict[pfx + 'yuri'] = self.yuri
@@ -215,7 +217,13 @@ class CommandPen:
         print("QR not yet implemented")
 
     async def set_quote(self, msg, *args):
+        quote = ' '.join(args[0][1:])
+        await self.CharQuery.set_quote(quote, msg.author.id, msg.server.id)
+        await self.ntsk.send_message(msg.channel, "Quote set~!")
 
+    async def get_quote(self, msg, *args):
+        quote = await self.CharQuery.get_quote(msg.author.id, msg.server.id)
+        await self.ntsk.send_message(msg.channel, quote)
 
     async def commands(self, msg, *args):
         await self.ntsk.send_message(msg.channel, COMMANDS_STR)

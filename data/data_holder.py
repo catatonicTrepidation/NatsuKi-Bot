@@ -40,6 +40,8 @@ COMMANDS_DICT = {
                 pfx + "bin"      : pfx + "bin   <text> [bool] [ID]              :: Convert text to\n"
                                                "                                             binary image\n",
                 pfx + "unbin"    : pfx + "unbin <image|URL>                     :: Decode binary image\n",
+                pfx + "setquote" : pfx + "setquote <text>                       :: Set favorite quote\n",
+                pfx + "quote"    : pfx + "quote                                 :: Natsuki says your quote\n",
                 pfx + "count"    : pfx + "count <text> [channel] [user] [.like] :: Query number of\n"
                                                "                                         messages in database\n",
                 pfx + "qr"       : pfx + "qr    [text]                          :: Turn text into QR code"

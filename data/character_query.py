@@ -4,12 +4,10 @@
 import discord
 import sqlite3 as lite
 import sys
-
 import random
+import json
 
 pfx = "~"
-
-
 
 
 class CharacterQuery:
@@ -17,29 +15,30 @@ class CharacterQuery:
     def __init__(self):
         self.last_query = None
 
-    
+    async def add_character(self, char_id, server_id):
+        data_path = 'data/databases/%s/characters.json' % (server_id,)
+        char_data = json.load(open(data_path))
+        char_data['characters'][char_id] = {'score' : 0, 'quote' : ''}
+
+    async def get_character_info(self, char_id, data_path):
+        char_data = json.load(open(data_path))
+        if char_id in char_data['characters']:
+            return char_data['characters'][char_id]
+
+    async def get_quote(self, char_id, server_id):
+        data_path = 'data/databases/%s/characters.json' % (server_id,)
+        with open(data_path, "r+") as chars_file:
+            char_data = json.load(chars_file)
+            if char_id in char_data['characters']:
+                return char_data['characters'][char_id]['quote']
+            return None
 
 
-
-def getGithubEmbed():
-    GITHUB_EMBED.set_thumbnail(url=getGitAvi())  # pick random embed image
-    return GITHUB_EMBED
-
-def getGitAvi():
-    r = random.randrange(len(github_avatars))
-    return github_avatars[r]
-
-
-
-def formatCmdDesc(cmd, params, desc):
-    return '{message:{fill}{align}}'.format(
-            message="`" + pfx + cmd + "` " + params, fill=' ',align='<90') + " :: " + desc
-
-
-
-def getCommandsString():
-    COMMANDS_STR = ""
-    for cmd, desc in COMMANDS_DICT.items():
-        COMMANDS_STR += desc + "\n"
-    COMMANDS_STR = CMD_LEGEND + "\n\n" + COMMANDS_STR
-    return COMMANDS_STR
+    async def set_quote(self, quote, char_id, server_id):
+        data_path = 'data/databases/%s/characters.json' % (server_id,)
+        with open(data_path, "r+") as chars_file:
+            char_data = json.load(chars_file)
+            char_data['characters'][char_id]['quote'] = quote
+            chars_file.seek(0)
+            json.dump(char_data, chars_file)
+            chars_file.truncate()
