@@ -5,7 +5,7 @@ import sqlite3 as lite
 import sys
 from string import punctuation
 
-from data.sql_setup import get_con, get_meta
+from data.data_setup import get_con, get_meta
 
 
 

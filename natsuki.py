@@ -6,7 +6,7 @@ import sqlite_broker
 import json
 from command_pen import *
 from mention_react import *
-import data.sql_setup
+import data.data_setup
 
 import random
 
@@ -27,13 +27,6 @@ class Natsuki(discord.Client):
             return
         print('Message from {0.author}: {0.content} {0.server.id}'.format(message))
 
-        if message.content == '~leaveserver':
-            print('which server?')
-            if message.server.id == '425418182329892866':
-                print('correct server!')
-                await ntsk.leave_server(message.server)
-
-
         if message.channel.name == "word-heist":  # change to channel ID
             if not sqlite_broker.add_unique_words(message):
                 await ntsk.delete_message(message)
@@ -53,7 +46,7 @@ class Natsuki(discord.Client):
 
     async def on_server_join(self, server):
         print('JOINED SERVER!!!')
-        data.sql_setup.initialize_databases(server)
+        data.data_setup.initialize_databases(server)
 
 
 ntsk = Natsuki()

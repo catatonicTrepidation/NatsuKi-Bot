@@ -4,12 +4,13 @@
 import discord
 import json
 import sqlite_broker
-from data.sql_setup import get_con
+from data.data_setup import get_con
 import re
 
 
 from imgclasses.binaryimage import *
 import data.data_holder
+import data.data_setup
 import util
 
 
@@ -36,6 +37,8 @@ class CommandPen:
         self.f_dict[pfx + 'bin'] = self.encode_bin
         self.f_dict[pfx + 'unbin'] = self.decode_bin
         self.f_dict[pfx + 'qr'] = self.create_qr
+        #self.f_dict[pfx + 'setquote'] = self.set_quote
+        #self.f_dict[pfx + 'quote'] = self.get_quote
 
         self.f_dict[pfx + '😂'] = self.ok_hand
         self.f_dict[pfx + 'yuri'] = self.yuri
@@ -43,6 +46,9 @@ class CommandPen:
         self.f_dict[pfx + '!db'] = self.do_nothing
         self.f_dict[pfx + '!inspire'] = self.do_nothing
         self.f_dict[pfx + '!info'] = self.do_nothing
+
+        self.f_dict[pfx + 'initdata'] = self.init_data
+        self.f_dict[pfx + 'leaveserver'] = self.leave_server
 
         #self.usrMentionPattern = re.pattern('<@!?')
 
@@ -208,6 +214,9 @@ class CommandPen:
         await self.ntsk.send_file(msg.channel, "data/images/error/NotImplemented.png", filename="NotImplemented.png")
         print("QR not yet implemented")
 
+    async def set_quote(self, msg, *args):
+
+
     async def commands(self, msg, *args):
         await self.ntsk.send_message(msg.channel, COMMANDS_STR)
 
@@ -219,8 +228,13 @@ class CommandPen:
         if random.randrange(10) == 0:
             # config_data['weight'] etc except don't make it config_data
             print('say something awkward, delay, then post info')
-
         await self.ntsk.send_message(msg.channel, embed=data.data_holder.getGithubEmbed())
+
+    async def init_data(self, msg, *args):
+        if msg.author.id == '232904019415269377':
+            data.data_setup.initialize_databases(msg.server)
+        else:
+            await self.ntsk.send_message(msg.channel, "Unknown command! `" + pfx + "commands` if you can't figure it out...")
 
     async def ok_hand(self, msg, *args):
         await self.ntsk.send_message(msg.channel, '👌')
@@ -231,3 +245,8 @@ class CommandPen:
     async def do_nothing(self, msg, *args):
         print('ree, Spock-san~')
 
+    async def leave_server(self, msg, *args):
+        if msg.author.id == '232904019415269377':
+            await ntsk.leave_server(msg.server)
+        else:
+            await self.ntsk.send_message(msg.channel, "Unknown command! `" + pfx + "commands` if you can't figure it out...")
