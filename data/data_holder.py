@@ -51,6 +51,39 @@ COMMANDS_DICT = {
 CMD_LEGEND = "Legend: <> specifies required params, [] specifies optional params"
 
 
+
+bad_responses = [
+
+    "...",
+    "Just go away...",
+    "No thank you.",
+    "You can leave now.",
+    "I don't need to hear it from *you.*"
+
+]
+
+neutral_responses = [
+
+    "Want to, um, read some manga..?",
+    "W-What do you want?",
+    "Well, I am a pro.",
+    "Hmm?"
+
+]
+
+good_responses = [
+
+    "♡",
+    "Hey~",
+    "Let's read manga~ :3",
+    "ニャ〜！",
+    "H-How do I look?"
+
+]
+
+all_responses = [bad_responses, neutral_responses, good_responses]
+
+
 # COMMANDS_DICT = {pfx + "count":formatCmdDesc("count","<text> [channel] [user] [.like]","Query number of messages in database"),
 #             pfx + "commands":formatCmdDesc("commands","","Get list of commands🖊"),
 #             pfx + "qr":formatCmdDesc("qr","[text]","Turn text into QR code")}
@@ -79,3 +112,6 @@ def getCommandsString():
         COMMANDS_STR += desc + "\n"
     COMMANDS_STR = CMD_LEGEND + "\n\n" + COMMANDS_STR
     return COMMANDS_STR
+
+def getResponseList(idx):
+    return all_responses[idx]

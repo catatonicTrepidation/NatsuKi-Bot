@@ -4,7 +4,7 @@
 import sqlite3 as lite
 import sys
 from string import punctuation
-
+import re
 
 def contains_curse_word(sentence):
     """
@@ -22,6 +22,19 @@ def contains_curse_word(sentence):
                 return True
             word = f.readline()[:-1]
     return False
+
+def valid_bow_message(sentence):
+    """
+    Checks if sentence is a valid way to praise NatsuKi
+    :param sentence: sentence to check
+    :return: true if valid praise
+    """
+    sentence = sentence.split(' ')
+    if len(sentence) > 2:
+        return False
+    bows = ['🙇','🙇🏻','🙇🏼','🙇🏽','🙇🏾','🙇🏿']
+    return sentence[0] == '<@422527461591482379>' and sentence[1] in bows or\
+           sentence[1] == '<@422527461591482379>' and sentence[0] in bows
 
 
 def detect_image(messages):

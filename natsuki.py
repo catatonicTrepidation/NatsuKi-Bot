@@ -5,7 +5,7 @@ import discord
 import sqlite_broker
 import json
 from command_pen import *
-from mention_react import *
+from mention_react import MentionReact
 import data.data_setup
 
 import random
@@ -40,7 +40,6 @@ class Natsuki(discord.Client):
             await self.pen.take_command(message, *content_list)
         else:
             sqlite_broker.add_message("messages", message)
-
             if ntsk.user.mentioned_in(message):
                 await self.mentionReact.take_mention(message, *content_list)
 
