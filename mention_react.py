@@ -43,11 +43,12 @@ class MentionReact:
                 chastice_message = await self.respGenerator.get_chastice_response(msg.author.id, msg.server.id)
                 await self.ntsk.send_message(msg.channel, chastice_message)
                 await self.charQuery.update_score(-5, msg.author.id, msg.server.id, absolute=True)
+                return
             elif valid_bow_message(msg.content):
                 praise_message = await self.respGenerator.get_praise_response(msg.author.id, msg.server.id)
                 await self.ntsk.send_message(msg.channel, praise_message)
                 await self.charQuery.update_score(3, msg.author.id, msg.server.id, absolute=True)
-        else:
-            #todo: add random wait before sending (implement start_typing()?)
-            resp = await self.respGenerator.get_predefined_response(msg.author.id, msg.server.id)
-            await self.ntsk.send_message(msg.channel, resp)
+                return
+        #todo: add random wait before sending (implement start_typing()?)
+        resp = await self.respGenerator.get_predefined_response(msg.author.id, msg.server.id)
+        await self.ntsk.send_message(msg.channel, resp)

@@ -12,6 +12,7 @@ from imgclasses.binaryimage import *
 import data.data_holder
 import data.data_setup
 import data.character_query
+import score_react
 import util
 
 
@@ -30,6 +31,7 @@ class CommandPen:
     def __init__(self, ntsk):
         self.ntsk = ntsk
         self.CharQuery = data.character_query.CharacterQuery()
+        self.scoreReact = score_react.ScoreReact()
         self.f_dict = dict()
 
         self.f_dict[pfx + 'info'] = self.display_info
@@ -39,8 +41,10 @@ class CommandPen:
         self.f_dict[pfx + 'bin'] = self.encode_bin
         self.f_dict[pfx + 'unbin'] = self.decode_bin
         self.f_dict[pfx + 'qr'] = self.create_qr
+
         self.f_dict[pfx + 'setquote'] = self.set_quote
         self.f_dict[pfx + 'quote'] = self.get_quote
+        self.f_dict[pfx + 'score'] = self.display_score
 
         self.f_dict[pfx + '😂'] = self.ok_hand
         self.f_dict[pfx + 'yuri'] = self.yuri
@@ -218,16 +222,19 @@ class CommandPen:
 
     async def set_quote(self, msg, *args):
         quote = ' '.join(args[0][1:])
-        await self.CharQuery.set_quote(quote, msg.author.id, msg.server.id)
+        await self.CharQuery.set_quote(quote, msg.author.id, 'quote', msg.server.id)
         await self.ntsk.send_message(msg.channel, "Quote set~!")
 
     async def get_quote(self, msg, *args):
-        quote = await self.CharQuery.get_quote(msg.author.id, msg.server.id)
+        quote = await self.CharQuery.get_character_data(msg.author.id, 'quote', msg.server.id)
         await self.ntsk.send_message(msg.channel, quote)
+
+    async def display_score(self, msg, *args):
+        score_display_msg = await self.scoreReact.check_score(msg.author.id, msg.server.id)
+        await self.ntsk.send_message(msg.channel, score_display_msg)
 
     async def commands(self, msg, *args):
         await self.ntsk.send_message(msg.channel, COMMANDS_STR)
-
 
     # make !help <command> function
     # document functions
@@ -248,7 +255,7 @@ class CommandPen:
         await self.ntsk.send_message(msg.channel, '👌')
 
     async def yuri(self, msg, *args):
-        await self.ntsk.send_file(msg.channel, 'data/images/react/natsuvomit.png')
+        await self.ntsk.send_file(msg.channel, 'data/images/reactions/natsuvomit.png')
 
     async def do_nothing(self, msg, *args):
         print('ree, Spock-san~')

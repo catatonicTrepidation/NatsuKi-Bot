@@ -47,13 +47,7 @@ class CharacterQuery:
 
 
     async def set_quote(self, quote, char_id, server_id):
-        data_path = 'data/databases/%s/characters.json' % (server_id,)
-        with open(data_path, "r+") as chars_file:
-            char_data = json.load(chars_file)
-            char_data['characters'][char_id]['quote'] = quote
-            chars_file.seek(0)
-            json.dump(char_data, chars_file)
-            chars_file.truncate()
+        await self.set_character_data()
 
     async def update_score(self, dp, char_id, server_id, absolute=False):
         data_path = 'data/databases/%s/characters.json' % (server_id,)
