@@ -222,7 +222,7 @@ class CommandPen:
 
     async def set_quote(self, msg, *args):
         quote = ' '.join(args[0][1:])
-        await self.CharQuery.set_quote(quote, msg.author.id, 'quote', msg.server.id)
+        await self.CharQuery.set_character_data(quote, msg.author.id, 'quote', msg.server.id)
         await self.ntsk.send_message(msg.channel, "Quote set~!")
 
     async def get_quote(self, msg, *args):
@@ -234,7 +234,7 @@ class CommandPen:
         await self.ntsk.send_message(msg.channel, score_display_msg)
 
     async def commands(self, msg, *args):
-        await self.ntsk.send_message(msg.channel, COMMANDS_STR)
+        await self.ntsk.send_message(msg.author, COMMANDS_STR)
 
     # make !help <command> function
     # document functions
