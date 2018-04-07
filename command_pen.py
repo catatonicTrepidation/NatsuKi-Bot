@@ -12,6 +12,7 @@ from imgclasses.binaryimage import *
 import data.data_holder
 import data.data_setup
 import data.character_query
+import data.data_query
 import score_react
 import util
 
@@ -38,6 +39,8 @@ class CommandPen:
         self.f_dict[pfx + 'commands'] = self.commands
 
         self.f_dict[pfx + 'count'] = self.db_count
+        self.f_dict[pfx + 'stats'] = self.display_top_words
+
         self.f_dict[pfx + 'bin'] = self.encode_bin
         self.f_dict[pfx + 'unbin'] = self.decode_bin
         self.f_dict[pfx + 'qr'] = self.create_qr
@@ -126,7 +129,7 @@ class CommandPen:
                     SQLQuery += " AND "
                 else:
                     SQLQuery += " WHERE "
-                SQLQuery += "Username = " + target_usr
+                SQLQuery += "UserId = " + target_usr
 
             if chn_mention:
                 if MQ or usr_mention:
@@ -232,6 +235,11 @@ class CommandPen:
     async def display_score(self, msg, *args):
         score_display_msg = await self.scoreReact.check_score(msg.author.id, msg.server.id)
         await self.ntsk.send_message(msg.channel, score_display_msg)
+
+    async def display_top_words(self, msg, *args):
+        top_words = await data.data_query.get_top_words(msg, 20, *args)
+        top_words = "```fix\n" + '\n'.join(top_words) + "\n```"
+        await self.ntsk.send_message(msg.channel, top_words)
 
     async def commands(self, msg, *args):
         await self.ntsk.send_message(msg.author, COMMANDS_STR)
