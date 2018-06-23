@@ -1,6 +1,11 @@
 #!/usr/bin/env python3.5
 # coding=utf-8
 
+"""
+RSA LIBRARY BY: Sybren A. Stüvel
+https://github.com/sybrenstuvel/python-rsa
+"""
+
 import rsa
 from rsa import key
 import codecs
