@@ -10,7 +10,7 @@ import data.data_setup
 
 import random
 
-config_data = json.load(open('data/config.json'))
+config_data = json.load(open('data/config.json','r',encoding="utf-8_sig"))
 
 pfx = '~'
 

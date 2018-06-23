@@ -14,6 +14,8 @@ import data.data_setup
 import data.character_query
 import data.data_query
 import score_react
+import encrypt
+import translate
 import util
 
 
@@ -33,6 +35,7 @@ class CommandPen:
         self.ntsk = ntsk
         self.CharQuery = data.character_query.CharacterQuery()
         self.scoreReact = score_react.ScoreReact()
+        self.messageEncryptor = encrypt.Encryptor()
         self.f_dict = dict()
 
         self.f_dict[pfx + 'info'] = self.display_info
@@ -41,12 +44,21 @@ class CommandPen:
         self.f_dict[pfx + 'count'] = self.db_count
         self.f_dict[pfx + 'stats'] = self.display_top_words
 
+
         self.f_dict[pfx + 'bin'] = self.encode_bin
         self.f_dict[pfx + 'unbin'] = self.decode_bin
         self.f_dict[pfx + 'qr'] = self.create_qr
+        self.f_dict[pfx + 'enc'] = self.get_encryption
+        self.f_dict[pfx + 'dec'] = self.get_decryption
+
+        self.f_dict[pfx + 'trans'] = self.translate
+
 
         self.f_dict[pfx + 'setquote'] = self.set_quote
         self.f_dict[pfx + 'quote'] = self.get_quote
+
+        self.f_dict[pfx + 'matrix'] = self.matrix
+
         self.f_dict[pfx + 'score'] = self.display_score
 
         self.f_dict[pfx + '😂'] = self.ok_hand
@@ -143,6 +155,21 @@ class CommandPen:
             num_msgs = cur.fetchall()[0][0]
             await self.ntsk.send_message(msg.channel, str(num_msgs) + " messages matched your query!")
 
+
+    async def get_logs(self, msg, *args):
+        params = args[0][1:]
+        if len(params) == 0:
+            print('-default')
+            #sqlquery.query_logs(10,
+        usr = None
+        target_id = None
+        num_msgs = 3
+        if len(msg.raw_mentions) != 0:
+            usr = msg.raw_mentions[0]
+        # elif params[0]
+
+        print('hi')
+
     async def encode_bin(self, msg, *args): # txtfile=False, author = False, Recipient = False
         """
         Encodes text as binary image
@@ -223,6 +250,68 @@ class CommandPen:
         await self.ntsk.send_file(msg.channel, "data/images/error/NotImplemented.png", filename="NotImplemented.png")
         print("QR not yet implemented")
 
+    async def get_encryption(self, msg, *args):
+
+        params = list(args[0])[1:]
+        if len(params) == 0:
+            await self.ntsk.send_message(msg.channel, "You can't encrypt nothing, silly~")
+            return False
+
+        e_idx = 1 # default is 1. i guess instead of having multiple N vals, we could just change the e vals lol
+        if args[0][1][0] == ".":
+            encryption_flag = args[0][1][1:]
+            if encryption_flag in ["2", "3", "4", "5"]:
+                e_idx = int(encryption_flag)
+                params = params[1:]
+
+        try:
+            hex_text = await self.messageEncryptor.encrypt_message(' '.join(params), idxflag=e_idx)
+            await self.ntsk.send_message(msg.channel, hex_text)
+        except Exception as e:
+            print(e)
+            await self.ntsk.send_message(msg.channel, "I can't encrypt this..!!!!")
+
+    async def get_decryption(self, msg, *args):
+
+        params = list(args[0])[1:]
+        if len(params) == 0:
+            await self.ntsk.send_message(msg.channel, "You can't decrypt nothing, silly~")
+            return False
+
+        e_idx = 1 # default is 1. i guess instead of having multiple N vals, we could just change the e vals lol
+        if args[0][1][0] == ".":
+            encryption_flag = args[0][1][1:]
+            if encryption_flag in ["2", "3", "4", "5"]:
+                e_idx = int(encryption_flag)
+                params = params[1:]
+
+        try:
+            dec_msg = await self.messageEncryptor.decrypt_message(' '.join(params), idxflag=e_idx)
+            await self.ntsk.send_message(msg.channel, dec_msg)
+        except Exception as e:
+            print(e)
+            await self.ntsk.send_message(msg.channel, "This is too hard to decrypt... :(")
+
+    async def translate(self, msg, *args):
+        params = args[0]
+        if len(params) < 3:
+            format_err_msg = "Oh! That's not how you format ~translate! >_<\n"
+            #await self.ntsk.send_message(msg.channel, format_err_msg + data.TRANSLATE_FORMAT)
+            await self.ntsk.send_message(msg.channel, format_err_msg)
+
+        text = ' '.join(params[2:])
+        success, trans = translate.get_translation(params[1], text)
+
+        trans = trans[0]
+
+        if len(trans) > 2000:
+            lth_err_msg = "The translation is too loong~!"
+            await self.ntsk.send_message(msg.channel, lth_err_msg)
+            return False
+
+        await self.ntsk.send_message(msg.channel, trans)
+        #return success
+
     async def set_quote(self, msg, *args):
         quote = ' '.join(args[0][1:])
         await self.CharQuery.set_character_data(quote, msg.author.id, 'quote', msg.server.id)
@@ -232,13 +321,67 @@ class CommandPen:
         quote = await self.CharQuery.get_character_data(msg.author.id, 'quote', msg.server.id)
         await self.ntsk.send_message(msg.channel, quote)
 
+    async def matrix(self, msg, *args):
+        x = ' '.join(msg.content.split(' ')[1:])
+        s = ""
+        for i in range(len(x)):
+            s += x[i:] + x[0:i] + "\n"
+
+        s = s[:-1]
+        if len(s) > 2000:
+            await self.ntsk.send_message(msg.channel, "Text too biiiig...~")
+        else:
+            await self.ntsk.send_message(msg.channel, s)
+
     async def display_score(self, msg, *args):
         score_display_msg = await self.scoreReact.check_score(msg.author.id, msg.server.id)
         await self.ntsk.send_message(msg.channel, score_display_msg)
 
     async def display_top_words(self, msg, *args):
-        top_words = await data.data_query.get_top_words(msg, 20, *args)
-        top_words = "```fix\n" + '\n'.join(top_words) + "\n```"
+
+        min_lth = 4 # default
+
+        params = args[0]
+
+        start = 0
+
+        if len(params) > 1:
+            if params[1].isdigit() and len(params[1]) < 5: # second if checks if not usr id, roughly
+                min_lth = int(params[1])
+                start = 1
+            elif len(params) > 2 and params[2].isdigit() and len(params[2]) < 5:
+                min_lth = int(params[2])
+
+        # usr_mention_id = None
+        # if len(msg.raw_mentions) != 0:
+        #     x = ('<@' + msg.raw_mentions[0] + '>', '<@!' + msg.raw_mentions[0] + '>')
+        #     if params[1] in x:
+        #         usr_mention_id = msg.raw_mentions[0]
+        #         start = 1
+        #     elif params[2] in x:
+        #         usr_mention_id = msg.raw_mentions[0]
+        usr_mention_id = None
+        if len(msg.raw_mentions) != 0:
+            usr_mention_id = msg.raw_mentions[0]
+
+        if not usr_mention_id:
+            for i in range(len(params)):
+                try:
+                    usr = await self.ntsk.get_user_info(params[i])
+                    usr_mention_id = usr.id
+                except:
+                    print('waahh')
+
+        if not usr_mention_id:
+            usr_mention_id = msg.author.id
+            print('hello?')
+            print(usr_mention_id)
+
+
+        text = ' '.join(args[0][start:])
+
+        top_words = await data.data_query.get_top_words(usr_mention_id, msg.server.id, 20, min_lth, *args)
+        top_words = "```fix\n" + '\n\n'.join(top_words) + "\n```"
         await self.ntsk.send_message(msg.channel, top_words)
 
     async def commands(self, msg, *args):

@@ -40,10 +40,16 @@ COMMANDS_DICT = {
                 pfx + "bin"      : pfx + "bin   <text> [bool] [ID]              :: Convert text to\n"
                                                "                                             binary image\n",
                 pfx + "unbin"    : pfx + "unbin <image|URL>                     :: Decode binary image\n",
+                pfx + "enc"      : pfx + "enc [.1-5] <text>                     :: Encode text with RSA\n",
+                pfx + "dec"      : pfx + "dec [.1-5] <text>                     :: Decode text with RSA\n",
+
+                pfx + "trans"    : pfx + "trans <lang-dir> <text>               :: Translate text (e.g. " + pfx + "trans en-es hello)\n",
+
                 pfx + "setquote" : pfx + "setquote <text>                       :: Set favorite quote\n",
                 pfx + "quote"    : pfx + "quote                                 :: Natsuki says your quote\n",
                 pfx + "count"    : pfx + "count <text> [channel] [user] [.like] :: Query number of\n"
                                                "                                         messages in database\n",
+                pfx + "stats"    : pfx + "stats [mention/ID] [number]           :: Get top used words\n",
                 pfx + "qr"       : pfx + "qr    [text]                          :: Turn text into QR code"
                 }
 
@@ -58,7 +64,8 @@ bad_responses = [
     "Just go away...",
     "No thank you.",
     "You can leave now.",
-    "I don't need to hear it from *you.*"
+    "I don't need to hear it from *you.*",
+    "Oh no, you again... " + b'\xF0\x9F\x98\xA3'.decode('utf-8')
 
 ]
 
@@ -77,7 +84,8 @@ good_responses = [
     "Hey~",
     "Let's read manga~ :3",
     "ニャ〜！",
-    "H-How do I look?"
+    "H-How do I look?",
+    "I made cupcakes..!"
 
 ]
 
