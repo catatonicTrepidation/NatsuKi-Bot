@@ -43,6 +43,7 @@ class CommandPen:
 
         self.f_dict[pfx + 'count'] = self.db_count
         self.f_dict[pfx + 'stats'] = self.display_top_words
+        self.f_dict[pfx + 'logs'] = self.get_logs
 
 
         self.f_dict[pfx + 'bin'] = self.encode_bin
@@ -160,15 +161,59 @@ class CommandPen:
         params = args[0][1:]
         if len(params) == 0:
             print('-default')
-            #sqlquery.query_logs(10,
-        usr = None
+            #sqlquery.query_logs(msg.server.id, 10,
+        rand_flag = None
         target_id = None
+        start_idx = None
+        img_flag = None
         num_msgs = 3
-        if len(msg.raw_mentions) != 0:
-            usr = msg.raw_mentions[0]
-        # elif params[0]
 
-        print('hi')
+        if len(msg.raw_mentions) != 0:
+            target_id = msg.raw_mentions[0]
+            num_msgs = 1
+
+        range_pat = re.compile(r'^-?[0-9]+:[0-9]+$')
+        idx_pat = re.compile(r'^-?[0-9]+$')
+        for p in params:
+            if not target_id:
+                try:
+                    usr = await self.ntsk.get_user_info(params[1])
+                    target_id = usr.id
+                    num_msgs = 1
+                    start_idx = None
+                    break
+                except:
+                    print('param not usr')
+                if p in ('.rand', '.random'):
+                    rand_flag = True
+                elif range_pat.match(p):
+                    a, b = p.split(':')
+                    start_idx = int(a)
+                    num_msgs = int(b)
+                    print(a,b,start_idx,num_msgs)
+                elif idx_pat.match(p):
+                    if rand_flag or start_idx:
+                        num_msgs = int(p)
+                    else:
+                        start_idx = int(p)
+                elif p in (".image", ".img"):
+                    img_flag = True
+            #if none of these things, return malformed command error? hmm
+
+        #img_flag=False
+        if rand_flag:
+            print('-rand')
+            success, result = await data.data_query.rand_query(msg.server.id, target_id, num_msgs, img_flag)
+        else:
+            print('-specific')
+            success, result = await data.data_query.id_query(msg.server.id, start_idx, num_msgs, img_flag)
+
+        if not img_flag:
+            result = await util.format_logs(result, self.ntsk.get_user_info)
+
+        #embed = embed(result)
+
+        await self.ntsk.send_message(msg.channel, result)
 
     async def encode_bin(self, msg, *args): # txtfile=False, author = False, Recipient = False
         """

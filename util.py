@@ -6,6 +6,7 @@ import sys
 from string import punctuation
 import re
 
+
 def contains_curse_word(sentence):
     """
     Checks if sentence contains a curse word/profanity
@@ -69,3 +70,26 @@ def detect_image(messages):
         j += 1
     print(msg_to_decode, attch, embed)
     return msg_to_decode, attch, embed  # change attach/embed to single var?
+
+async def format_logs(logs, get_user_info):
+    formatted_text = ""
+    ft_copy = formatted_text
+
+    for content, user_id, username, date in logs:
+        formatted_text += date + "\n"
+        if username == "Unknown":
+            try:
+                usr = await get_user_info(user_id)
+                formatted_text += usr.name
+            except:
+                print("couldn't find user")
+        else:
+            formatted_text += username
+        formatted_text += " (" + user_id + "):\n" + content
+        formatted_text += "\n\n"
+
+        if len(formatted_text) > 2000:
+            break
+        ft_copy = formatted_text
+
+    return ft_copy

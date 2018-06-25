@@ -3,8 +3,8 @@
 
 import sqlite3 as lite
 import sys
-from string import punctuation
 
+from string import punctuation
 from data.data_setup import get_con, get_meta
 
 
@@ -16,13 +16,13 @@ def add_message(db_name, msg):
     :param db_name: database to augment
     :param msg: message to add
     """
-    metadata = get_meta(msg.server.id)
-    count = metadata['count'] + 1
+    #metadata = get_meta(msg.server.id)
+    #count = metadata['count'] + 1
     con = get_con(db_name, msg.server.id)
     with con:
         cur = con.cursor()
         cur.execute("INSERT INTO " + db_name + " VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-                    (msg.content, msg.id, msg.author.id, msg.author.name, msg.channel.id, str(msg.timestamp), msg.server.id, count))
+                    (None, msg.content, msg.id, msg.author.id, msg.author.name, msg.channel.id, str(msg.timestamp), msg.server.id))
 
     # catch exception? return True for success?
 
