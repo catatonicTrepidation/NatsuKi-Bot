@@ -34,14 +34,15 @@ class Natsuki(discord.Client):
                     await ntsk.send_message(message.channel, "You've already used that word, you dope! >_<")
 
         content_list = message.content.split(' ')
-        if not message.content:
-            return
-        if message.content[0] == pfx:
-            await self.pen.take_command(message, *content_list)
-        else:
-            sqlite_broker.add_message("messages", message)
-            if ntsk.user.mentioned_in(message):
-                await self.mentionReact.take_mention(message, *content_list)
+
+        if  message.content:
+            if message.content[0] == pfx:
+                await self.pen.take_command(message, *content_list)
+                return
+            else:
+                if ntsk.user.mentioned_in(message):
+                    await self.mentionReact.take_mention(message, *content_list)
+        sqlite_broker.add_message("messages", message)
 
     async def on_server_join(self, server):
         print('JOINED SERVER!!!')

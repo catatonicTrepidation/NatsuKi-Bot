@@ -93,3 +93,28 @@ async def format_logs(logs, get_user_info):
         ft_copy = formatted_text
 
     return ft_copy
+
+async def prepare_for_image(logs, get_user_info):
+    for i in range(len(logs)):
+        content, user_id, username, date = logs[i]
+        if username == "Unknown":
+            try:
+                usr = await get_user_info(user_id)
+                logs[i][2] = usr.name
+
+                if usr.avatar_url:
+                    logs[i].append(usr.avatar_url)
+                else:
+                    logs[i].append(usr.default_avatar_url)
+            except:
+                print("couldn't find user")
+        else:
+            usr = await get_user_info(user_id)
+            logs[i][2] = usr.name
+
+            if usr.avatar_url:
+                logs[i].append(usr.avatar_url)
+            else:
+                logs[i].append(usr.default_avatar_url)
+
+    return logs

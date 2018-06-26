@@ -50,6 +50,7 @@ COMMANDS_DICT = {
                 pfx + "count"    : pfx + "count <text> [channel] [user] [.like] :: Query number of\n"
                                                "                                         messages in database\n",
                 pfx + "stats"    : pfx + "stats [mention/ID] [number]           :: Get top used words\n",
+                pfx + "logs"     : pfx + "logs [.rand] [.image] [db id] [num]   :: Get messages from the logs",
                 pfx + "qr"       : pfx + "qr    [text]                          :: Turn text into QR code"
                 }
 

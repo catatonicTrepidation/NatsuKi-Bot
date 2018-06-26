@@ -19,10 +19,20 @@ def add_message(db_name, msg):
     #metadata = get_meta(msg.server.id)
     #count = metadata['count'] + 1
     con = get_con(db_name, msg.server.id)
+    msg_content = msg.content
+    if len(msg.attachments) > 0:
+        temp1 = temp2 = msg_content
+        for atch in msg.attachments:
+            temp2 += "\n" + atch['url']
+            if len(temp2) > 2000:
+                break
+            temp1 = temp2
+        msg_content = temp1
+
     with con:
         cur = con.cursor()
         cur.execute("INSERT INTO " + db_name + " VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
-                    (None, msg.content, msg.id, msg.author.id, msg.author.name, msg.channel.id, str(msg.timestamp), msg.server.id))
+                    (None, msg_content, msg.id, msg.author.id, msg.author.name, msg.channel.id, str(msg.timestamp), msg.server.id))
 
     # catch exception? return True for success?
 

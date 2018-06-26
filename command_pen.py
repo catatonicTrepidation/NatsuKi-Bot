@@ -16,6 +16,7 @@ import data.data_query
 import score_react
 import encrypt
 import translate
+import log_drawer
 import util
 
 
@@ -200,6 +201,7 @@ class CommandPen:
                     img_flag = True
             #if none of these things, return malformed command error? hmm
 
+        result = None
         #img_flag=False
         if rand_flag:
             print('-rand')
@@ -210,10 +212,24 @@ class CommandPen:
 
         if not img_flag:
             result = await util.format_logs(result, self.ntsk.get_user_info)
+            await self.ntsk.send_message(msg.channel, result)
+        else:
+            print('-image')
+            prepped_logs = await util.prepare_for_image(result, self.ntsk.get_user_info)
+            logs_img = log_drawer.draw_logs(prepped_logs)  # saved logs.jpg
+            logs_img.save('data/databases/%s/downloaded/images/logs.jpg' % (msg.server.id,))
+            await self.ntsk.send_file(msg.channel, 'data/databases/%s/downloaded/images/logs.jpg' % (msg.server.id,), filename="logs.jpg")
+            #logs_img.save('data/' + str(msg.server.id) + '/downloaded/images/logs.jpg')
+            #self.ntsk.send_file('data/' + str(msg.server.id) + '/downloaded/images/logs.jpg')
+
+
+
+
+
 
         #embed = embed(result)
 
-        await self.ntsk.send_message(msg.channel, result)
+
 
     async def encode_bin(self, msg, *args): # txtfile=False, author = False, Recipient = False
         """
