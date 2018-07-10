@@ -37,8 +37,7 @@ GITHUB_EMBED.set_footer(text=GITHUB, icon_url="https://i.imgur.com/0RkZBe1.png")
 COMMANDS_DICT = {
                 pfx + "commands" : pfx + "commands                              :: Get list of commands🖊\n",
                 pfx + "info"     : pfx + "info                                  :: Learn about me~!\n",
-                pfx + "bin"      : pfx + "bin   <text> [bool] [ID]              :: Convert text to\n"
-                                               "                                             binary image\n",
+                pfx + "bin"      : pfx + "bin   <text> [bool] [ID]              :: Convert text to binary image\n",
                 pfx + "unbin"    : pfx + "unbin <image|URL>                     :: Decode binary image\n",
                 pfx + "enc"      : pfx + "enc [.1-5] <text>                     :: Encode text with RSA\n",
                 pfx + "dec"      : pfx + "dec [.1-5] <text>                     :: Decode text with RSA\n",
@@ -47,10 +46,10 @@ COMMANDS_DICT = {
 
                 pfx + "setquote" : pfx + "setquote <text>                       :: Set favorite quote\n",
                 pfx + "quote"    : pfx + "quote                                 :: Natsuki says your quote\n",
-                pfx + "count"    : pfx + "count <text> [channel] [user] [.like] :: Query number of\n"
-                                               "                                         messages in database\n",
-                pfx + "stats"    : pfx + "stats [mention/ID] [number]           :: Get top used words\n",
-                pfx + "logs"     : pfx + "logs [.rand] [.image] [db id] [num]   :: Get messages from the logs",
+                pfx + "futuresay": pfx + "futuresay h m s <text>                :: Natsuki says what you tell her -- in the future!\n",
+                pfx + "count"    : pfx + "count <text> [channel] [user] [.like] :: Query number of messages in database\n",
+                pfx + "stats"    : pfx + "stats [me|mention|ID] [num] [.punct]  :: Get top used words\n",
+                pfx + "logs"     : pfx + "logs [.rand] [.image] [db id] [num]   :: Get messages from the logs\n",
                 pfx + "qr"       : pfx + "qr    [text]                          :: Turn text into QR code"
                 }
 

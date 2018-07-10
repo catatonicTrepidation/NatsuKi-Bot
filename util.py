@@ -118,3 +118,14 @@ async def prepare_for_image(logs, get_user_info):
                 logs[i].append(usr.default_avatar_url)
 
     return logs
+
+"""
+def scheduled_return(obj, time_offset, scheduler):
+    #s = sched.scheduler() #(time.time, time.sleep) not necessary/implied
+    def get_obj(x):
+        return x
+    # get priority with negative len(scheduler.queue)
+    obj = scheduler.enter(time_offset, 1, get_obj, argument=(obj,))
+    print(obj)
+    return obj
+"""

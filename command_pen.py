@@ -6,6 +6,9 @@ import json
 import sqlite_broker
 from data.data_setup import get_con
 import re
+import sched
+import asyncio
+import time
 
 
 from imgclasses.binaryimage import *
@@ -17,6 +20,8 @@ import score_react
 import encrypt
 import translate
 import log_drawer
+import text_automata
+import trivia
 import util
 
 
@@ -37,10 +42,11 @@ class CommandPen:
         self.CharQuery = data.character_query.CharacterQuery()
         self.scoreReact = score_react.ScoreReact()
         self.messageEncryptor = encrypt.Encryptor()
+        #self.scheduler = sched.scheduler() # scheduler(time.time, time.sleep) implied ((wow, asyncio.sleep() seems good for now))
         self.f_dict = dict()
 
         self.f_dict[pfx + 'info'] = self.display_info
-        self.f_dict[pfx + 'commands'] = self.commands
+        self.f_dict[pfx + 'commands'] = self.get_commands
 
         self.f_dict[pfx + 'count'] = self.db_count
         self.f_dict[pfx + 'stats'] = self.display_top_words
@@ -58,6 +64,13 @@ class CommandPen:
 
         self.f_dict[pfx + 'setquote'] = self.set_quote
         self.f_dict[pfx + 'quote'] = self.get_quote
+
+        self.f_dict[pfx + 'points'] = self.show_points
+
+        self.f_dict[pfx + 'automata'] = self.automata
+        self.f_dict[pfx + 'trivia'] = self.ask_trivia
+
+        self.f_dict[pfx + 'futuresay'] = self.future_say
 
         self.f_dict[pfx + 'matrix'] = self.matrix
 
@@ -221,11 +234,6 @@ class CommandPen:
             await self.ntsk.send_file(msg.channel, 'data/databases/%s/downloaded/images/logs.jpg' % (msg.server.id,), filename="logs.jpg")
             #logs_img.save('data/' + str(msg.server.id) + '/downloaded/images/logs.jpg')
             #self.ntsk.send_file('data/' + str(msg.server.id) + '/downloaded/images/logs.jpg')
-
-
-
-
-
 
         #embed = embed(result)
 
@@ -400,52 +408,173 @@ class CommandPen:
 
     async def display_top_words(self, msg, *args):
 
+        params = args[0][1:]
+
         min_lth = 4 # default
-
-        params = args[0]
-
-        start = 0
-
-        if len(params) > 1:
-            if params[1].isdigit() and len(params[1]) < 5: # second if checks if not usr id, roughly
-                min_lth = int(params[1])
-                start = 1
-            elif len(params) > 2 and params[2].isdigit() and len(params[2]) < 5:
-                min_lth = int(params[2])
-
-        # usr_mention_id = None
-        # if len(msg.raw_mentions) != 0:
-        #     x = ('<@' + msg.raw_mentions[0] + '>', '<@!' + msg.raw_mentions[0] + '>')
-        #     if params[1] in x:
-        #         usr_mention_id = msg.raw_mentions[0]
-        #         start = 1
-        #     elif params[2] in x:
-        #         usr_mention_id = msg.raw_mentions[0]
+        punct_flag = False
         usr_mention_id = None
         if len(msg.raw_mentions) != 0:
             usr_mention_id = msg.raw_mentions[0]
 
-        if not usr_mention_id:
-            for i in range(len(params)):
+        for p in params:
+            if p.isdigit() and len(p) < 5: # second if checks if not usr id, roughly
+                min_lth = int(p)
+            elif p in ('.punct', '.punctuation'):
+                print('.punct found')
+                punct_flag = True
+            elif p in ('me', '.me'):
+                usr_mention_id = msg.author.id
+            elif not usr_mention_id:
                 try:
-                    usr = await self.ntsk.get_user_info(params[i])
+                    usr = await self.ntsk.get_user_info(p)
                     usr_mention_id = usr.id
-                except:
-                    print('waahh')
+                except Exception as e:
+                    print(e)
 
-        if not usr_mention_id:
-            usr_mention_id = msg.author.id
-            print('hello?')
-            print(usr_mention_id)
+        # message author is no longer default
+        # default is the whole server
+        # if not usr_mention_id:
+        #     usr_mention_id = msg.author.id
+        #     print('hello?')
+        #     print(usr_mention_id)
 
 
-        text = ' '.join(args[0][start:])
-
-        top_words = await data.data_query.get_top_words(usr_mention_id, msg.server.id, 20, min_lth, *args)
+        top_words = await data.data_query.get_top_words(usr_mention_id, msg.server.id, 20, min_lth, punct_flag)
         top_words = "```fix\n" + '\n\n'.join(top_words) + "\n```"
         await self.ntsk.send_message(msg.channel, top_words)
 
-    async def commands(self, msg, *args):
+
+    async def future_say(self, msg, *args):
+        params = args[0][1:]
+        hours = minutes = seconds = 0
+
+        time_offset = [0, 0, 0]
+
+        if len(params) < 4:
+            await self.ntsk.send_message(msg.channel, "Hmm! I don't understand that format!~\n Please try `" + pfx + "futuresay hr min sec <text>!`")
+            return False
+
+        for i in range(3):
+            if params[i].isnumeric():
+                time_offset[i] = int(params[i])
+            else:
+                await self.ntsk.send_message(msg.channel, "That syntax doesn't seem right... If you need my help, just use " + pfx + "commands :cat::ok_hand:")
+                return False
+
+        h, m, s = time_offset
+        time_offset = 3600*h + 60*m + s
+        text = ' '.join(params[3:])
+        await asyncio.sleep(time_offset)
+        await self.ntsk.send_message(msg.channel, text)
+
+
+    async def automata(self, msg, *args):
+
+        # max 5 chars allowed
+        # min 2
+        # must be space separated
+
+        params = args[0][1:]
+
+        chrs = []
+        for p in params:
+            if len(p) == 1:
+                # found char
+                chrs.append(p)
+
+
+        if len(chrs) < 2:
+            chrs = ['👌','😂','🍆']
+        elif len(chrs) > 5:
+            chrs = chrs[:5]
+
+        chrs_dict, board = text_automata.init_automata(chrs)
+
+        last_msg = await self.ntsk.send_message(msg.channel, '_ _\n' + '\n'.join([''.join(x) for x in board]))
+
+        num_frames = 15
+        for i in range(num_frames):
+            board = text_automata.game_loop(chrs_dict, len(chrs), board)
+            time.sleep(1)
+            last_msg = await self.ntsk.edit_message(last_msg, new_content='_ _\n' + '\n'.join([''.join(x) for x in board]))
+
+        return True
+
+    async def ask_trivia(self, msg, *args):
+        config = json.load(open("data/databases/" + msg.server.id + "/" + 'opentdb_config.json'))
+
+        TOKEN = config['token']
+
+        params = args[0][1:]
+        difficulty = category = type = None
+        # for p in params:
+        #     if
+        # num_questions = 1
+        resp_code, questions = trivia.get_trivia_questions(TOKEN, amt=1)
+        if resp_code == 3:
+            import requests
+            data = requests.post(url="https://opentdb.com/api_token.php?command=request")
+            TOKEN = data.json()["token"]
+            config["token"] = TOKEN
+            resp_code, questions = trivia.get_trivia_questions(TOKEN, amt=1)
+        #prompts, correct_answers, incorrect_answers = [], [], []
+        prompt, correct_answer, incorrect_answers = questions[0]['question'], questions[0]['correct_answer'], questions[0]['incorrect_answers']
+        prompt += "\n"
+
+        ans_list = [correct_answer] + incorrect_answers
+        ans_list_copy = ans_list[:]
+
+        correct_idx = None
+        for i, s in enumerate(ans_list):
+            prompt += "\n({}) {}".format(i+1, s)
+            ans_list_copy.append(str(i+1))
+            if s == correct_answer:
+                correct_idx = str(i+1)
+
+
+
+        await self.ntsk.send_message(msg.channel, prompt)
+
+        await self.CharQuery.update_points(-1, msg.author.id, msg.server.id)
+
+        ans_list = [x.lower() for x in ans_list_copy]
+
+        #print('ans_list =', ans_list)
+
+        chk = lambda m : m.content.lower() in ans_list and m.channel.id == msg.channel.id
+
+        resp_msg = await self.ntsk.wait_for_message(timeout=10, author=msg.author, check=chk)
+        if not resp_msg:
+            await self.ntsk.send_message(msg.channel, "Bzzt! Took too long to respond...!")
+            return
+
+        guess = resp_msg.content.lower()
+        if guess in (correct_answer.lower(), correct_idx):
+            # correct answer!
+            # add points to profile
+            await self.CharQuery.update_points(2, msg.author.id, msg.server.id)
+            await self.ntsk.send_message(resp_msg.channel, "That's right! Yay!")
+            return
+
+        await self.ntsk.send_message(resp_msg.channel, "Aww... You're wrong...")
+
+
+    async def show_points(self, msg, *args):
+        params = args[0][1:]
+        server_points = await self.CharQuery.get_points(msg.author.id, msg.server.id)
+
+        resp = "{} has {} points!".format(msg.author.name, server_points)
+
+        import random
+        if server_points > 10 and random.randrange(10) == 2:
+            resp += "Wow! No life~ :3"
+
+        await self.ntsk.send_message(msg.channel, resp)
+        return
+
+
+
+    async def get_commands(self, msg, *args):
         await self.ntsk.send_message(msg.author, COMMANDS_STR)
 
     # make !help <command> function
