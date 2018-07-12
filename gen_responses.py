@@ -24,7 +24,7 @@ class ResponseGenerator:
         Get random, predefined response
         :return: response as string
         """
-        char_score = await self.charQuery.get_character_data(char_id, 'score', server_id)
+        char_score = await self.charQuery.get_character_data(char_id, 'ntskpoints', server_id)
         idx = max(0, min(char_score//10, 2))
         resp_list = getResponseList(idx)
         r = random.randrange(len(resp_list))
@@ -32,13 +32,13 @@ class ResponseGenerator:
 
     async def get_chastice_response(self, char_id, server_id):
         chastice_message = "Hey! No naughty words!!"
-        char_score = await self.charQuery.get_character_data(char_id, 'score', server_id)
+        char_score = await self.charQuery.get_character_data(char_id, 'ntskpoints', server_id)
         if char_score > 20:
             chastice_message += " ...I expected better from you... :/"
         return chastice_message
 
     async def get_praise_response(self, char_id, server_id):
-        char_score = await self.charQuery.get_character_data(char_id, 'score', server_id)
+        char_score = await self.charQuery.get_character_data(char_id, 'ntskpoints', server_id)
         if char_score > 20:
             return "D'aww! ^_^"
         if char_score > 10:

@@ -44,6 +44,13 @@ class Natsuki(discord.Client):
                     await self.mentionReact.take_mention(message, *content_list)
         sqlite_broker.add_message("messages", message)
 
+    async def on_reaction_add(self, reaction, user):
+        if user == ntsk.user:
+            return
+
+        if reaction.message.author.bot:
+            await self.pen.take_reaction(reaction, user)
+
     async def on_server_join(self, server):
         print('JOINED SERVER!!!')
         data.data_setup.initialize_databases(server)

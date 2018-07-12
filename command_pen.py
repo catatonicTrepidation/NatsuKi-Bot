@@ -16,12 +16,15 @@ import data.data_holder
 import data.data_setup
 import data.character_query
 import data.data_query
+import data.danbooru_request
+import data.danbooru_query
 import score_react
 import encrypt
 import translate
 import log_drawer
 import text_automata
 import trivia
+import timer
 import util
 
 
@@ -34,6 +37,8 @@ pfx = "~"
 COMMANDS_STR = data.data_holder.getCommandsString()
 COMMANDS_STR = "```hs\n" + COMMANDS_STR + "\n```"
 
+DANBO_CONTROLS_EMOJI = {":left_arrow:" : -1, ":right_arrow:" : 1}
+
 
 class CommandPen:
 
@@ -42,6 +47,13 @@ class CommandPen:
         self.CharQuery = data.character_query.CharacterQuery()
         self.scoreReact = score_react.ScoreReact()
         self.messageEncryptor = encrypt.Encryptor()
+
+        danbooru_config = json.load(open('data/config.json','r',encoding="utf-8_sig"))
+        self.danbooruRequest = data.danbooru_request.DanbooruRequest(danbooru_config['danbooru_user'], danbooru_config['danbooru_key'])
+        self.danbooruQuery = data.danbooru_query.DanbooruQuery()
+
+        self.timerHolder = timer.TimerHolder(servers=list(map(lambda s : s.id, self.ntsk.servers)))
+        #self.timerHolder = timer_holder.TimerHolder() # holds timers for each server, each with info on the user who created it, etc...
         #self.scheduler = sched.scheduler() # scheduler(time.time, time.sleep) implied ((wow, asyncio.sleep() seems good for now))
         self.f_dict = dict()
 
@@ -61,6 +73,7 @@ class CommandPen:
 
         self.f_dict[pfx + 'trans'] = self.translate
 
+        self.f_dict[pfx + 'danbo'] = self.post_danbooru
 
         self.f_dict[pfx + 'setquote'] = self.set_quote
         self.f_dict[pfx + 'quote'] = self.get_quote
@@ -361,6 +374,54 @@ class CommandPen:
             print(e)
             await self.ntsk.send_message(msg.channel, "This is too hard to decrypt... :(")
 
+    async def post_danbooru(self, msg, *args):
+        params = args[0]
+
+        # check if space open
+        embed_idx = self.timerHolder.find_free_space(msg.author.id, msg.server.id)
+        if embed_idx == -1: # timers full
+            print("Already at max num of timers!")
+            await self.ntsk.send_message("Already have three embeds... Give me a break......")
+            return
+
+        # decipher query
+
+        # download danbooru info
+        num_posts = self.danbooruRequest.download_danbooru_info("", msg.server.id, embed_idx)
+
+        self.timerHolder.set_timer(msg.author.id, msg.server.id, embed_idx, wait_time=60) # move this to last, i think?
+
+        # post danbooru posts
+        self.danbooruQuery.last_query = 0
+        self.danbooruQuery.num_posts = num_posts
+
+        # get first post of query
+        post_data = await self.danbooruQuery.get_post(msg.server.id, embed_idx)
+
+        # set up embed with post data
+        page_status = "%s/%s" % (1, num_posts)
+        id_info = "id: %s" % (post_data['id'],)
+        artist_info = "artist: %s" % (post_data["tag_string_artist"], )
+        danbo_embed = discord.Embed(title=page_status, description=artist_info) #  description="No descriptions yet..." ['artist_commentary']
+        danbo_embed.set_image(url=post_data['file_url'])
+        danbo_embed.set_footer(text=post_data['source'])
+
+        embed_msg = await self.ntsk.send_message(msg.channel, embed=danbo_embed)
+
+        # pair msg id with that embed in json file
+        self.timerHolder.pair_msg_with_index(msg.server.id, embed_idx, embed_msg.id)
+
+        # add left/right emoji to embed message
+        await self.ntsk.add_reaction(embed_msg, '⬅')
+        await self.ntsk.add_reaction(embed_msg, '➡')
+        await self.ntsk.add_reaction(embed_msg, '❌')
+
+        print("i should've send a message")
+
+        return True
+
+
+
     async def translate(self, msg, *args):
         params = args[0]
         if len(params) < 3:
@@ -531,8 +592,6 @@ class CommandPen:
             if s == correct_answer:
                 correct_idx = str(i+1)
 
-
-
         await self.ntsk.send_message(msg.channel, prompt)
 
         await self.CharQuery.update_points(-1, msg.author.id, msg.server.id)
@@ -552,7 +611,7 @@ class CommandPen:
         if guess in (correct_answer.lower(), correct_idx):
             # correct answer!
             # add points to profile
-            await self.CharQuery.update_points(2, msg.author.id, msg.server.id)
+            await self.CharQuery.update_points(3, msg.author.id, msg.server.id)
             await self.ntsk.send_message(resp_msg.channel, "That's right! Yay!")
             return
 
@@ -567,7 +626,7 @@ class CommandPen:
 
         import random
         if server_points > 10 and random.randrange(10) == 2:
-            resp += "Wow! No life~ :3"
+            resp += " Wow! No life~ :3"
 
         await self.ntsk.send_message(msg.channel, resp)
         return
@@ -606,3 +665,46 @@ class CommandPen:
             await ntsk.leave_server(msg.server)
         else:
             await self.ntsk.send_message(msg.channel, "Unknown command! `" + pfx + "commands` if you can't figure it out...")
+
+    async def take_reaction(self, reaction, user):
+
+        print(reaction.emoji)
+        # check if on one of the embed messages
+        embed_idx = self.timerHolder.get_embed_idx(reaction.message.server.id, reaction.message.id)
+        print('embed_idx =',embed_idx)
+        if embed_idx:
+            print("reaction on embed message!")
+            if reaction.custom_emoji:
+                return False # or maybe just do something else?
+
+            controller_emoji = None
+            num_posts = self.danbooruQuery.num_posts
+            last_query = self.danbooruQuery.last_query
+            if reaction.emoji == '⬅':
+                self.danbooruQuery.last_query = (num_posts + last_query - 1)%num_posts
+                controller_emoji = '⬅'
+            elif reaction.emoji == '➡':
+                self.danbooruQuery.last_query = (last_query + 1)%num_posts
+                controller_emoji = '➡'
+            elif reaction.emoji == '❌':
+                # make replaceable true, stop timer
+                # controller_emoji = '❌'
+                print('used X')
+
+            if controller_emoji:
+                post_data = await self.danbooruQuery.get_post(reaction.message.server.id, embed_idx)
+
+                # set up embed with post data
+                page_status = "%s/%s" % (self.danbooruQuery.last_query+1, num_posts)
+                id_info = "id: %s" % (post_data['id'],)
+                artist_info = "artist: %s" % (post_data["tag_string_artist"],)
+                danbo_embed = discord.Embed(title=page_status,
+                                            description=artist_info)  # description="No descriptions yet..." ['artist_commentary']
+                danbo_embed.set_image(url=post_data['file_url'])
+                danbo_embed.set_footer(text=post_data['source'])
+
+                # edit message with embed
+                await self.ntsk.edit_message(reaction.message, embed=danbo_embed)
+                await self.ntsk.remove_reaction(reaction.message, controller_emoji, user)
+
+
