@@ -44,6 +44,9 @@ COMMANDS_DICT = {
 
                 pfx + "trans"    : pfx + "trans <lang-dir> <text>               :: Translate text (e.g. " + pfx + "trans en-es hello)\n",
 
+                pfx + "danbo"    : pfx + "danbo [.rating=safe|questionable|explicit] [.order=X] \n"\
+                                          "       [tags] [.random] [.private]     :: Browse some anime pix!\n",
+
                 pfx + "setquote" : pfx + "setquote <text>                       :: Set favorite quote\n",
                 pfx + "quote"    : pfx + "quote                                 :: Natsuki says your quote\n",
                 pfx + "futuresay": pfx + "futuresay h m s <text>                :: Natsuki says what you tell her -- in the future!\n",

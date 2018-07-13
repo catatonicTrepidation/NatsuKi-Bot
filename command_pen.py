@@ -50,8 +50,7 @@ class CommandPen:
 
         danbooru_config = json.load(open('data/config.json','r',encoding="utf-8_sig"))
         self.danbooruRequest = data.danbooru_request.DanbooruRequest(danbooru_config['danbooru_user'], danbooru_config['danbooru_key'])
-        self.danbooruQuery = data.danbooru_query.DanbooruQuery()
-
+        self.danbooruQuery = data.danbooru_query.DanbooruQuery(servers=list(map(lambda s : s.id, self.ntsk.servers)))
         self.timerHolder = timer.TimerHolder(servers=list(map(lambda s : s.id, self.ntsk.servers)))
         #self.timerHolder = timer_holder.TimerHolder() # holds timers for each server, each with info on the user who created it, etc...
         #self.scheduler = sched.scheduler() # scheduler(time.time, time.sleep) implied ((wow, asyncio.sleep() seems good for now))
@@ -375,7 +374,7 @@ class CommandPen:
             await self.ntsk.send_message(msg.channel, "This is too hard to decrypt... :(")
 
     async def post_danbooru(self, msg, *args):
-        params = args[0]
+        params = (args[0])[1:]
 
         # check if space open
         embed_idx = self.timerHolder.find_free_space(msg.author.id, msg.server.id)
@@ -385,15 +384,27 @@ class CommandPen:
             return
 
         # decipher query
-
+        query, is_private = await self.danbooruQuery.get_query_from_params(params)
+        print('is_private =',is_private)
         # download danbooru info
-        num_posts = self.danbooruRequest.download_danbooru_info("", msg.server.id, embed_idx)
+        num_posts, error_message = self.danbooruRequest.download_danbooru_info(msg.server.id, embed_idx, query)
+        if error_message:
+            if error_message == "The database timed out running your query.":
+                await self.ntsk.send_message(msg.channel, "Database timed out...")
+            else:
+                await self.ntsk.send_message(msg.channel, error_message)
+            return False
+        if num_posts == 0:
+            await self.ntsk.send_message(msg.channel, "No results! Aww..")
+            return False
+
 
         self.timerHolder.set_timer(msg.author.id, msg.server.id, embed_idx, wait_time=60) # move this to last, i think?
 
         # post danbooru posts
-        self.danbooruQuery.last_query = 0
-        self.danbooruQuery.num_posts = num_posts
+        self.danbooruQuery.embed_data[msg.server.id][embed_idx]["last_query"] = 0
+        self.danbooruQuery.embed_data[msg.server.id][embed_idx]["num_posts"] = num_posts
+        self.danbooruQuery.embed_data[msg.server.id][embed_idx]["private"] = is_private
 
         # get first post of query
         post_data = await self.danbooruQuery.get_post(msg.server.id, embed_idx)
@@ -403,7 +414,10 @@ class CommandPen:
         id_info = "id: %s" % (post_data['id'],)
         artist_info = "artist: %s" % (post_data["tag_string_artist"], )
         danbo_embed = discord.Embed(title=page_status, description=artist_info) #  description="No descriptions yet..." ['artist_commentary']
-        danbo_embed.set_image(url=post_data['file_url'])
+        if 'file_url' in post_data:
+            danbo_embed.set_image(url=post_data['file_url'])
+        else:
+            danbo_embed.set_image(url='http://i68.tinypic.com/1kb9h.png')
         danbo_embed.set_footer(text=post_data['source'])
 
         embed_msg = await self.ntsk.send_message(msg.channel, embed=danbo_embed)
@@ -414,6 +428,7 @@ class CommandPen:
         # add left/right emoji to embed message
         await self.ntsk.add_reaction(embed_msg, '⬅')
         await self.ntsk.add_reaction(embed_msg, '➡')
+        await self.ntsk.add_reaction(embed_msg, '🔼')
         await self.ntsk.add_reaction(embed_msg, '❌')
 
         print("i should've send a message")
@@ -678,29 +693,59 @@ class CommandPen:
                 return False # or maybe just do something else?
 
             controller_emoji = None
-            num_posts = self.danbooruQuery.num_posts
-            last_query = self.danbooruQuery.last_query
+            num_posts = self.danbooruQuery.embed_data[reaction.message.server.id][str(embed_idx)]["num_posts"]
+            last_query = self.danbooruQuery.embed_data[reaction.message.server.id][str(embed_idx)]["last_query"]
+
+            if reaction.emoji in '⬅➡' and self.danbooruQuery.embed_data[reaction.message.server.id][str(embed_idx)]["private"] \
+                    and user.id != self.timerHolder.get_embed_creator(reaction.message.server.id, embed_idx-1):
+                print("Someone tried to change someone else's embed...")
+                return
+
             if reaction.emoji == '⬅':
-                self.danbooruQuery.last_query = (num_posts + last_query - 1)%num_posts
+                self.danbooruQuery.embed_data[reaction.message.server.id][str(embed_idx)]["last_query"] = (num_posts + last_query - 1)%num_posts
                 controller_emoji = '⬅'
             elif reaction.emoji == '➡':
-                self.danbooruQuery.last_query = (last_query + 1)%num_posts
+                self.danbooruQuery.embed_data[reaction.message.server.id][str(embed_idx)]["last_query"] = (last_query + 1)%num_posts
                 controller_emoji = '➡'
             elif reaction.emoji == '❌':
-                # make replaceable true, stop timer
-                # controller_emoji = '❌'
+                # delete post if this is orig user
+                if user.id == self.timerHolder.get_embed_creator(reaction.message.server.id, embed_idx-1):
+                    await self.ntsk.delete_message(reaction.message)
+                    # end that timer
+                    self.timerHolder.make_embed_replaceable(reaction.message.server.id, embed_idx)
+                    return
                 print('used X')
+            elif reaction.emoji == '🔼':
+                # "save pic" by PMing to user
+
+                # get pic info
+                post_data = await self.danbooruQuery.get_post(reaction.message.server.id, embed_idx)
+
+                # set up PM embed with post data
+                artist_info = "artist: %s" % (post_data["tag_string_artist"],)
+                id_info = "id: %s" % (post_data['id'],)
+                danbo_pm_embed = discord.Embed(title=id_info, description=artist_info, colour=discord.Color(0xF5F5FF))  # description="No descriptions yet..." ['artist_commentary']
+                danbo_pm_embed.set_image(url=post_data['large_file_url'])
+                danbo_pm_embed.set_footer(text=post_data['source'])
+
+                # send PM embed to user
+                await self.ntsk.send_message(user, embed=danbo_pm_embed)
+                await self.ntsk.remove_reaction(reaction.message, '🔼', user)
+                return
 
             if controller_emoji:
                 post_data = await self.danbooruQuery.get_post(reaction.message.server.id, embed_idx)
 
                 # set up embed with post data
-                page_status = "%s/%s" % (self.danbooruQuery.last_query+1, num_posts)
+                page_status = "%s/%s" % (self.danbooruQuery.embed_data[reaction.message.server.id][str(embed_idx)]["last_query"]+1, num_posts)
                 id_info = "id: %s" % (post_data['id'],)
                 artist_info = "artist: %s" % (post_data["tag_string_artist"],)
                 danbo_embed = discord.Embed(title=page_status,
                                             description=artist_info)  # description="No descriptions yet..." ['artist_commentary']
-                danbo_embed.set_image(url=post_data['file_url'])
+                if 'file_url' in post_data:
+                    danbo_embed.set_image(url=post_data['file_url'])
+                else:
+                    danbo_embed.set_image(url='http://i68.tinypic.com/1kb9h.png')
                 danbo_embed.set_footer(text=post_data['source'])
 
                 # edit message with embed
