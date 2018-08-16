@@ -6,6 +6,7 @@ import sqlite_broker
 import json
 from command_pen import *
 from mention_react import MentionReact
+import emojihunt
 import data.data_setup
 
 import random
@@ -20,6 +21,8 @@ class Natsuki(discord.Client):
     async def on_ready(self):
         self.pen = CommandPen(self)
         self.mentionReact = MentionReact(self)
+        # self.emojiHunt = emojihunt.EmojiHunt(ntsk)
+        # await self.emojiHunt.main_loop()
         print('Logged on as {0}!'.format(self.user))
 
     async def on_message(self, message):

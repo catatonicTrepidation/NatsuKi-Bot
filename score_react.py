@@ -25,7 +25,7 @@ class ScoreReact:
         #self.usrMentionPattern = re.pattern('<@!?')
 
     async def check_score(self, char_id, server_id):
-        char_score = await self.charQuery.get_character_data(char_id, 'score', server_id)
+        char_score = await self.charQuery.get_character_data(char_id, 'ntskpoints', server_id)
         resp = ""
         if char_score > 20:
             resp = "We're buddies~ ♡"

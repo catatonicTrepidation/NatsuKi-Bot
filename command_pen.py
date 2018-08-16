@@ -25,6 +25,8 @@ import log_drawer
 import text_automata
 import trivia
 import timer
+#import emojihunt
+import kanji_quiz
 import util
 
 
@@ -47,6 +49,9 @@ class CommandPen:
         self.CharQuery = data.character_query.CharacterQuery()
         self.scoreReact = score_react.ScoreReact()
         self.messageEncryptor = encrypt.Encryptor()
+        self.kanjiQuiz = kanji_quiz.KanjiQuiz()
+
+
 
         danbooru_config = json.load(open('data/config.json','r',encoding="utf-8_sig"))
         self.danbooruRequest = data.danbooru_request.DanbooruRequest(danbooru_config['danbooru_user'], danbooru_config['danbooru_key'])
@@ -81,6 +86,7 @@ class CommandPen:
 
         self.f_dict[pfx + 'automata'] = self.automata
         self.f_dict[pfx + 'trivia'] = self.ask_trivia
+        self.f_dict[pfx + 'kanji'] = self.ask_kanji_quiz
 
         self.f_dict[pfx + 'futuresay'] = self.future_say
 
@@ -598,6 +604,7 @@ class CommandPen:
         prompt += "\n"
 
         ans_list = [correct_answer] + incorrect_answers
+        random.shuffle(ans_list)
         ans_list_copy = ans_list[:]
 
         correct_idx = None
@@ -631,6 +638,47 @@ class CommandPen:
             return
 
         await self.ntsk.send_message(resp_msg.channel, "Aww... You're wrong...")
+
+    async def ask_kanji_quiz(self, msg, *args):
+        params = args[0][1:]
+
+        grade = None
+        if len(params) >= 1:
+            if params[0] in ('1','2','3','4','5','6'):
+                grade = params[0]
+            elif params[0] in ('.grade=1', '.grade=2', '.grade=3', '.grade=4', '.grade=5', '.grade=6')\
+                or params[0] in ('.level=1', '.level=2', '.level=3', '.level=4', '.level=5', '.level=6'):
+                grade = params[0].split('=')[1]
+
+        kanji, answers = self.kanjiQuiz.get_question_and_answers(grade)
+        prompt = "「" + kanji + "」"
+        await self.ntsk.send_message(msg.channel, prompt)
+
+        #await self.CharQuery.update_points(-1, msg.author.id, msg.server.id)
+
+        resp_msg = await self.ntsk.wait_for_message(timeout=10, author=msg.author)
+        if not resp_msg:
+            if random.randrange(10) == 3:
+                await self.ntsk.send_message(msg.channel, "遅いぞー！")
+            else:
+                await self.ntsk.send_message(msg.channel, "Bzzt! Took too long to respond...!")
+            return
+
+        guess = resp_msg.content.lower()
+        if guess in answers:
+            # correct answer!
+            # add points to profile
+            #await self.CharQuery.update_points(3, msg.author.id, msg.server.id)
+            if random.randrange(10) == 3:
+                await self.ntsk.send_message(resp_msg.channel, "正解！")
+            else:
+                await self.ntsk.send_message(resp_msg.channel, "That's right! Yay!")
+            return
+
+        if random.randrange(10) == 3:
+            await self.ntsk.send_message(resp_msg.channel, "違うよー")
+        else:
+            await self.ntsk.send_message(resp_msg.channel, "Aww... You're wrong...")
 
 
     async def show_points(self, msg, *args):
@@ -688,7 +736,7 @@ class CommandPen:
         embed_idx = self.timerHolder.get_embed_idx(reaction.message.server.id, reaction.message.id)
         print('embed_idx =',embed_idx)
         if embed_idx:
-            print("reaction on embed message!")
+            print("%s put a reaction on embed message!" % (user.name,))
             if reaction.custom_emoji:
                 return False # or maybe just do something else?
 
