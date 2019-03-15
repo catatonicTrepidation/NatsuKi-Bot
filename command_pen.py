@@ -18,6 +18,7 @@ import data.character_query
 import data.data_query
 import data.danbooru_request
 import data.danbooru_query
+import google_search
 import score_react
 import encrypt
 import translate
@@ -50,7 +51,12 @@ class CommandPen:
         self.scoreReact = score_react.ScoreReact()
         self.messageEncryptor = encrypt.Encryptor()
         self.kanjiQuiz = kanji_quiz.KanjiQuiz()
-
+        self.googleSearcher = google_search.googleimagesdownload()
+        self.searchArgs = {"keywords": "neko", "safe_search": False, "metadata": False, "limit": 5,
+                 "no_directory": True, "output_directory": "birdy", "keywords_from_file" : None, "size":None, "format": None,
+                 "time":None, "time_range":None, 'suffix_keywords':None, 'prefix_keywords':None,'url':None, 'similar_images':None,'specific_site':None,
+                 'single_image':None,'proxy':None,'image_directory':None,'thumbnail':None,'language':None,'exact_size':None,
+                 'color':None,'color_type':None,'usage_rights':None,'type':None,'aspect_ratio':None,'offset':None}
 
 
         danbooru_config = json.load(open('data/config.json','r',encoding="utf-8_sig"))
@@ -59,6 +65,7 @@ class CommandPen:
         self.timerHolder = timer.TimerHolder(servers=list(map(lambda s : s.id, self.ntsk.servers)))
         #self.timerHolder = timer_holder.TimerHolder() # holds timers for each server, each with info on the user who created it, etc...
         #self.scheduler = sched.scheduler() # scheduler(time.time, time.sleep) implied ((wow, asyncio.sleep() seems good for now))
+
         self.f_dict = dict()
 
         self.f_dict[pfx + 'info'] = self.display_info
@@ -78,6 +85,8 @@ class CommandPen:
         self.f_dict[pfx + 'trans'] = self.translate
 
         self.f_dict[pfx + 'danbo'] = self.post_danbooru
+        self.f_dict[pfx + 'google'] = self.google_images
+        self.f_dict[pfx + 'vgoogle'] = self.google_videos
 
         self.f_dict[pfx + 'setquote'] = self.set_quote
         self.f_dict[pfx + 'quote'] = self.get_quote
@@ -386,7 +395,7 @@ class CommandPen:
         embed_idx = self.timerHolder.find_free_space(msg.author.id, msg.server.id)
         if embed_idx == -1: # timers full
             print("Already at max num of timers!")
-            await self.ntsk.send_message("Already have three embeds... Give me a break......")
+            await self.ntsk.send_message(msg.channel, "Already have three embeds... Give me a break......")
             return
 
         # decipher query
@@ -441,6 +450,103 @@ class CommandPen:
 
         return True
 
+    async def google_images(self, msg, *args):
+        params = args[0]
+        num_result_limit = 100
+        lang = None
+        safe_search = False
+        page = 1
+        # if not msg.channel.is_nsfw():
+        #     safe_search = True
+        keywords = []
+        for p in params[1:]:
+            if p.startswith('.lang=') or p.startswith('.language='):
+                lang = p.split('=')[1]
+            elif p == ('.safe'):
+                safe_search = True
+            elif p.startswith('.') and len(p) >= 2 and p[1:].isdigit() and int(p[1:]) < num_result_limit:
+                page = int(p[1:])
+            else:
+                keywords.append(p)
+
+        keywords = " ".join(keywords)
+        self.searchArgs["keywords"] = keywords
+        self.searchArgs["language"] = lang
+        self.searchArgs["safe_search"] = safe_search
+        image_objects = self.googleSearcher.download(self.searchArgs)
+        print('len() =',len(image_objects))
+        print(image_objects)
+        await self.ntsk.send_message(msg.channel, image_objects[page-1]['image_link'])
+
+    async def google_videos(self, msg, *args):
+        params = args[0]
+        lang = None
+        safe_search = False
+        # if not msg.channel.is_nsfw():
+        #     safe_search = True
+        keywords = []
+        for p in params[1:]:
+            if p.startswith('.lang=') or p.startswith('.language='):
+                lang = p.split('=')[1]
+            elif p == ('.safe'):
+                safe_search = True
+            else:
+                keywords.append(p)
+
+        keywords = " ".join(keywords)
+        self.searchArgs["keywords"] = keywords
+        self.searchArgs["language"] = lang
+        self.searchArgs["safe_search"] = safe_search
+        video_objects = self.googleSearcher.download_videos(self.searchArgs)
+
+        await self.ntsk.send_message(msg.channel, video_objects[0])
+
+        # async def google_images(self, msg, *args):
+        #     params = (args[0])[1:]
+        #
+        #     # check if space open
+        #     embed_idx = 0
+        #     num_results = 0
+        #     image_objects = []
+        #     with open('data/databases/{}/google_embed_data.json'.format(msg.server.id),'w+',encoding='utf-8') as google_embed_data:
+        #         embed_idx = google_embed_data['embed_idx']
+        #         num_results = google_embed_data['num_results']
+        #         image_objects = google_embed_data['image_objects']
+        #
+        #
+        #     # post danbooru posts
+        #     self.danbooruQuery.embed_data[msg.server.id][embed_idx]["last_query"] = 0
+        #     self.danbooruQuery.embed_data[msg.server.id][embed_idx]["num_posts"] = num_posts
+        #     self.danbooruQuery.embed_data[msg.server.id][embed_idx]["private"] = is_private
+        #
+        #     post_data
+        #
+        #     # set up embed with post data
+        #     page_status = "%s/%s" % (1, num_posts)
+        #     id_info = "id: %s" % (post_data['id'],)
+        #     artist_info = "artist: %s" % (post_data["tag_string_artist"],)
+        #     danbo_embed = discord.Embed(title=page_status,
+        #                                 description=artist_info)  # description="No descriptions yet..." ['artist_commentary']
+        #     if 'file_url' in post_data:
+        #         danbo_embed.set_image(url=post_data['file_url'])
+        #     else:
+        #         danbo_embed.set_image(url='http://i68.tinypic.com/1kb9h.png')
+        #     danbo_embed.set_footer(text=post_data['source'])
+        #
+        #     embed_msg = await self.ntsk.send_message(msg.channel, embed=danbo_embed)
+        #
+        #     # pair msg id with that embed in json file
+        #     self.timerHolder.pair_msg_with_index(msg.server.id, embed_idx, embed_msg.id)
+        #
+        #     # add left/right emoji to embed message
+        #     await self.ntsk.add_reaction(embed_msg, '⬅')
+        #     await self.ntsk.add_reaction(embed_msg, '➡')
+        #     await self.ntsk.add_reaction(embed_msg, '🔼')
+        #     await self.ntsk.add_reaction(embed_msg, '❌')
+        #
+        #     print("i should've send a message")
+        #
+        #     return True
 
 
     async def translate(self, msg, *args):
@@ -566,7 +672,7 @@ class CommandPen:
 
 
         if len(chrs) < 2:
-            chrs = ['👌','😂','🍆']
+            chrs = ['👌','😂','🔥']
         elif len(chrs) > 5:
             chrs = chrs[:5]
 
@@ -703,10 +809,11 @@ class CommandPen:
     # document functions
 
     async def display_info(self, msg, *args):
-        if random.randrange(10) == 0:
-            # config_data['weight'] etc except don't make it config_data
-            print('say something awkward, delay, then post info')
-        await self.ntsk.send_message(msg.channel, embed=data.data_holder.getGithubEmbed())
+        await self.ntsk.send_message(msg.channel, "nya")
+        # if random.randrange(10) == 0:
+        #     # config_data['weight'] etc except don't make it config_data
+        #     print('say something awkward, delay, then post info')
+        # await self.ntsk.send_message(msg.channel, embed=data.data_holder.getGithubEmbed())
 
     async def init_data(self, msg, *args):
         if msg.author.id == '232904019415269377':
@@ -725,7 +832,7 @@ class CommandPen:
 
     async def leave_server(self, msg, *args):
         if msg.author.id == '232904019415269377':
-            await ntsk.leave_server(msg.server)
+            await self.ntsk.leave_server(msg.server)
         else:
             await self.ntsk.send_message(msg.channel, "Unknown command! `" + pfx + "commands` if you can't figure it out...")
 

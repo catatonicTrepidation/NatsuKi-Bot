@@ -9,7 +9,6 @@ from data.data_setup import get_con, get_meta
 
 
 
-
 def add_message(db_name, msg):
     """
     Add discord message to database
@@ -18,6 +17,7 @@ def add_message(db_name, msg):
     """
     #metadata = get_meta(msg.server.id)
     #count = metadata['count'] + 1
+
     con = get_con(db_name, msg.server.id)
     msg_content = msg.content
     if len(msg.attachments) > 0:

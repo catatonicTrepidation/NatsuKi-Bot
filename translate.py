@@ -40,4 +40,4 @@ def get_valid_langs():
     print(response.text)
 
 #print(get_translation('en-ru','hello'))
-#get_valid_langs()
+get_valid_langs()

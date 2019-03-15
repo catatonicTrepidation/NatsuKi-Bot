@@ -33,14 +33,14 @@ def initialize_databases(server):
                     "ServerId TEXT)")
 
     if not os.path.exists(dir + 'meta.json'):
-        data = {'count': 0}
+        data = {'count': 0, "allow_recording":0}
         with open(dir + 'meta.json', 'w') as outfile:
             json.dump(data, outfile)
 
     if not os.path.exists(dir + 'characters.json'):
         chars = {}
         for member in server.members:
-            chars[member.id] = {'score': 0, 'quote': ''}
+            chars[member.id] = {"ntskpoints": 0, "quote": "hi", "serverpoints": 0}
 
         data = {'characters': chars}
         with open(dir + 'characters.json', 'w') as outfile:
