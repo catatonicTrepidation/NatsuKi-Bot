@@ -44,6 +44,8 @@ class Natsuki(discord.Client):
 
         if  message.content:
             if message.content[0] == pfx:
+                if len(message.content) > 1 and message.content[1] == '!':
+                    return
                 await self.pen.take_command(message, *content_list)
                 return
             else:

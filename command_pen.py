@@ -28,6 +28,7 @@ import trivia
 import timer
 #import emojihunt
 import kanji_quiz
+import ateji_to_word
 import util
 
 
@@ -63,6 +64,7 @@ class CommandPen:
         self.danbooruRequest = data.danbooru_request.DanbooruRequest(danbooru_config['danbooru_user'], danbooru_config['danbooru_key'])
         self.danbooruQuery = data.danbooru_query.DanbooruQuery(servers=list(map(lambda s : s.id, self.ntsk.servers)))
         self.timerHolder = timer.TimerHolder(servers=list(map(lambda s : s.id, self.ntsk.servers)))
+        self.atejiMatcher = ateji_to_word.AtejiMatcher()
         #self.timerHolder = timer_holder.TimerHolder() # holds timers for each server, each with info on the user who created it, etc...
         #self.scheduler = sched.scheduler() # scheduler(time.time, time.sleep) implied ((wow, asyncio.sleep() seems good for now))
 
@@ -96,6 +98,8 @@ class CommandPen:
         self.f_dict[pfx + 'automata'] = self.automata
         self.f_dict[pfx + 'trivia'] = self.ask_trivia
         self.f_dict[pfx + 'kanji'] = self.ask_kanji_quiz
+
+        self.f_dict[pfx + 'kmatch'] = self.match_ateji
 
         self.f_dict[pfx + 'futuresay'] = self.future_say
 
@@ -631,6 +635,13 @@ class CommandPen:
         top_words = "```fix\n" + '\n\n'.join(top_words) + "\n```"
         await self.ntsk.send_message(msg.channel, top_words)
 
+    async def match_ateji(self, msg, *args):
+        params = args[0][1:]
+        kanji_list = params
+        matches = self.atejiMatcher.match_ateji(kanji_list)
+
+        output = '\n'.join(matches)
+        await self.ntsk.send_message(msg.channel, output)
 
     async def future_say(self, msg, *args):
         params = args[0][1:]
