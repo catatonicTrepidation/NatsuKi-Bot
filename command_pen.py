@@ -105,6 +105,8 @@ class CommandPen:
 
         self.f_dict[pfx + 'matrix'] = self.matrix
 
+        self.f_dict[pfx + 'lmgtfy'] = self.lmgtfy
+
         self.f_dict[pfx + 'score'] = self.display_score
 
         self.f_dict[pfx + '😂'] = self.ok_hand
@@ -583,7 +585,7 @@ class CommandPen:
         await self.ntsk.send_message(msg.channel, quote)
 
     async def matrix(self, msg, *args):
-        x = ' '.join(msg.content.split(' ')[1:])
+        x = ' '.join(msg.content.split(' ')[1:]) # + " "
         s = ""
         for i in range(len(x)):
             s += x[i:] + x[0:i] + "\n"
@@ -638,9 +640,15 @@ class CommandPen:
     async def match_ateji(self, msg, *args):
         params = args[0][1:]
         kanji_list = params
-        matches = self.atejiMatcher.match_ateji(kanji_list)
+        matches, too_long = self.atejiMatcher.match_ateji(kanji_list)
 
-        output = '\n'.join(matches)
+        output = last_output = ""
+        for romaji, katakana, kanji in matches:
+            output += romaji + ": " + kanji + "（" + katakana + "）\n"
+
+        if too_long:
+            output += "\nSkipped certain kanji readings to save time..."
+        # output = '\n'.join(matches)
         await self.ntsk.send_message(msg.channel, output)
 
     async def future_say(self, msg, *args):
@@ -698,6 +706,14 @@ class CommandPen:
             last_msg = await self.ntsk.edit_message(last_msg, new_content='_ _\n' + '\n'.join([''.join(x) for x in board]))
 
         return True
+
+
+    async def lmgtfy(self, msg, *args):
+        params = args[0][1:]
+        output = "Here you go, silly~\n"
+        output += "http://lmgtfy.com/?q="
+        output += '+'.join(params)
+        await self.ntsk.send_message(msg.channel, output)
 
     async def ask_trivia(self, msg, *args):
         config = json.load(open("data/databases/" + msg.server.id + "/" + 'opentdb_config.json'))
